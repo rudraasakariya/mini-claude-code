@@ -1,8 +1,8 @@
 from agent.state import Action, LoopState, State, Step , ToolName
-from config.settings import Settings
+from config.settings import BudgetSettings
 
 
-def check_stop_conditions(state: State , settings: Settings) -> LoopState | None:
+def check_stop_conditions(state: State , settings: BudgetSettings) -> LoopState | None:
     if state.steps and state.steps[-1].action.tool == ToolName.SUBMIT:
         return LoopState.SUBMIT_CALLED
     
@@ -30,7 +30,7 @@ def execute_action(action: Action) -> str:
     # fake: returns "ok"
     return "ok"
 
-def run_agent_loop(state: State, settings: Settings) -> State:
+def run_agent_loop(state: State, settings: BudgetSettings) -> State:
     while True:
         stop_reason = check_stop_conditions(state, settings)
         if stop_reason is not None:

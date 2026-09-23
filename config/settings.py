@@ -1,8 +1,14 @@
 from dataclasses import dataclass
 
+
 @dataclass(frozen=True)
-class Settings:
+class BudgetSettings:
     max_steps: int = 30
     max_tokens: int = 100000
     max_spend: float = 1.00
     last_action_repeat_limit: int = 3
+
+
+@dataclass(frozen=True)
+class ToolSettings:
+    max_grep_results: int = 100
