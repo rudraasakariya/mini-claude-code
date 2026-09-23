@@ -5,3 +5,4 @@ class Settings:
     max_steps: int = 30
     max_tokens: int = 100000
     max_spend: float = 1.00
+    last_action_repeat_limit: int = 3

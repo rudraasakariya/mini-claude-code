@@ -15,4 +15,9 @@ def check_stop_conditions(state: State , settings: Settings) -> LoopState | None
     if state.spend >= settings.max_spend:
         return LoopState.COST_CEILING_HIT
     
+    if len(state.steps) >= settings.last_action_repeat_limit:
+        last_actions = [step.action for step in state.steps[-settings.last_action_repeat_limit:]]
+        if all(action == last_actions[0] for action in last_actions):
+            return LoopState.REPEATED_ACTION
+    
     return None
