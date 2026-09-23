@@ -1,5 +1,6 @@
 import re
 from pathlib import Path
+from mcp_server.errors import ToolError
 
 IGNORED_DIRS = {".git", "__pycache__", "node_modules"}
 NO_MATCHES_MESSAGE = "No matches found."
@@ -19,11 +20,13 @@ def grep(
     try:
         regex = re.compile(pattern)
     except re.error as e:
-        raise ValueError(f"Invalid regex pattern: {e}") from e
+        raise ToolError(f"Invalid regex pattern: {e}")
 
     root = Path(path)
     if not root.exists():
-        raise FileNotFoundError(f"The path {path} does not exist.")
+        raise ToolError(
+            f"The path {path} does not exist. Use glob or grep to search for the right path."
+        )
 
     files = [root] if root.is_file() else root.rglob(include or "*")
 

@@ -16,3 +16,4 @@ class BudgetSettings:
 @dataclass(frozen=True)
 class ToolSettings:
     max_grep_results: int = 100
+    max_read_lines: int = 200
