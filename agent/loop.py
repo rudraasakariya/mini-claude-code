@@ -1,22 +1,22 @@
 from agent.state import Action, LoopState, State, Step , ToolName
-from config.settings import BudgetSettings
+from config.settings import BudgetSettings, LoopSettings
 
 
-def check_stop_conditions(state: State , settings: BudgetSettings) -> LoopState | None:
+def check_stop_conditions(state: State, loop: LoopSettings, budget: BudgetSettings) -> LoopState | None:
     if state.steps and state.steps[-1].action.tool == ToolName.SUBMIT:
         return LoopState.SUBMIT_CALLED
-    
-    if len(state.steps) >= settings.max_steps:
+
+    if len(state.steps) >= loop.max_steps:
         return LoopState.STEP_LIMIT_HIT
-    
-    if state.token_count >= settings.max_tokens:
+
+    if state.token_count >= budget.max_tokens:
         return LoopState.TOKEN_BUDGET_HIT
-    
-    if state.spend >= settings.max_spend:
+
+    if state.spend >= budget.max_spend:
         return LoopState.COST_CEILING_HIT
-    
-    if len(state.steps) >= settings.last_action_repeat_limit:
-        last_actions = [step.action for step in state.steps[-settings.last_action_repeat_limit:]]
+
+    if len(state.steps) >= loop.last_action_repeat_limit:
+        last_actions = [step.action for step in state.steps[-loop.last_action_repeat_limit:]]
         if all(action == last_actions[0] for action in last_actions):
             return LoopState.REPEATED_ACTION
     
@@ -30,9 +30,9 @@ def execute_action(action: Action) -> str:
     # fake: returns "ok"
     return "ok"
 
-def run_agent_loop(state: State, settings: BudgetSettings) -> State:
+def run_agent_loop(state: State, loop: LoopSettings, budget: BudgetSettings) -> State:
     while True:
-        stop_reason = check_stop_conditions(state, settings)
+        stop_reason = check_stop_conditions(state, loop, budget)
         if stop_reason is not None:
             state.stop_reason = stop_reason
             break

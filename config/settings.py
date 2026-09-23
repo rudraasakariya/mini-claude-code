@@ -2,11 +2,15 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class BudgetSettings:
+class LoopSettings:
     max_steps: int = 30
+    last_action_repeat_limit: int = 3
+
+
+@dataclass(frozen=True)
+class BudgetSettings:
     max_tokens: int = 100000
     max_spend: float = 1.00
-    last_action_repeat_limit: int = 3
 
 
 @dataclass(frozen=True)
