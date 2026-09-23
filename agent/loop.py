@@ -1,4 +1,4 @@
-from agent.state import LoopState, State , ToolName
+from agent.state import Action, LoopState, State, Step , ToolName
 from config.settings import Settings
 
 
@@ -21,3 +21,30 @@ def check_stop_conditions(state: State , settings: Settings) -> LoopState | None
             return LoopState.REPEATED_ACTION
     
     return None
+
+def call_model(state:State) -> Action:
+    #fake model call for now, just return a dummy action
+    return Action(tool=ToolName.SUBMIT, arguments={})
+
+def execute_action(action: Action) -> str:
+    # fake: returns "ok"
+    return "ok"
+
+def run_agent_loop(state: State, settings: Settings) -> State:
+    while True:
+        stop_reason = check_stop_conditions(state, settings)
+        if stop_reason is not None:
+            state.stop_reason = stop_reason
+            break
+        
+        action = call_model(state)
+        observation = execute_action(action)
+        
+        step = Step(action=action, observation=observation)
+        state.steps.append(step)
+        
+        # Update token count and spend (fake values for now)
+        state.token_count += 10  # fake increment
+        state.spend += 0.01  # fake increment
+    
+    return state
