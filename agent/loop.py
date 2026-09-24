@@ -1,5 +1,6 @@
 from agent.state import Action, LoopState, State, Step , ToolName
-from config.settings import BudgetSettings, LoopSettings
+from config.settings import BudgetSettings, LoopSettings, ToolSettings
+from agent.executor import execute_action
 
 
 def check_stop_conditions(state: State, loop: LoopSettings, budget: BudgetSettings) -> LoopState | None:
@@ -26,11 +27,7 @@ def call_model(state:State) -> Action:
     #fake model call for now, just return a dummy action
     return Action(tool=ToolName.SUBMIT, arguments={})
 
-def execute_action(action: Action) -> str:
-    # fake: returns "ok"
-    return "ok"
-
-def run_agent_loop(state: State, loop: LoopSettings, budget: BudgetSettings) -> State:
+def run_agent_loop(state: State, loop: LoopSettings, budget: BudgetSettings , tool_settings: ToolSettings) -> State:
     while True:
         stop_reason = check_stop_conditions(state, loop, budget)
         if stop_reason is not None:
@@ -38,7 +35,7 @@ def run_agent_loop(state: State, loop: LoopSettings, budget: BudgetSettings) -> 
             break
         
         action = call_model(state)
-        observation = execute_action(action)
+        observation = execute_action(action, tool_settings)
         
         step = Step(action=action, observation=observation)
         state.steps.append(step)

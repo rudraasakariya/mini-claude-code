@@ -18,3 +18,4 @@ class ToolSettings:
     max_grep_results: int = 100
     max_read_lines: int = 200
     max_glob_results: int = 100
+    max_run_output_chars: int = 10000
