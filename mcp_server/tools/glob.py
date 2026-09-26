@@ -1,10 +1,10 @@
 from pathlib import Path
 from mcp_server.errors import ToolError
+from mcp_server.project_files import list_project_files
 from mcp_server.schemas import ToolSpec
 from agent.state import ToolName
 from pydantic import BaseModel, Field
 
-IGNORED_DIRS = {".git", "__pycache__", "node_modules"}
 NO_MATCHES_MESSAGE = "No matches found."
 TRUNCATION_NOTICE = (
     "[truncated: showing {shown} of {total} matches. "
@@ -36,13 +36,10 @@ def glob(pattern: str, path: str = ".", *, max_results: int) -> str:
             f"The path {path} does not exist. Use glob or grep to search for the right path."
         )
     results: list[str] = []
-    for file in root.rglob(pattern):
-        if not file.is_file():
-            continue
-        if any(part in IGNORED_DIRS for part in file.parts):
-            continue
+    for file in list_project_files(root):
+        if file.match(pattern):
+            results.append(str(file))
 
-        results.append(str(file))
     if not results:
         return NO_MATCHES_MESSAGE
     glob_results = results[:max_results]
