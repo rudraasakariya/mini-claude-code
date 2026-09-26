@@ -19,10 +19,10 @@ class GlobArgs(BaseModel):
 GLOB_SPEC = ToolSpec(
     name=ToolName.GLOB,
     description=(
-        "Search for files using a glob pattern. "
-        "It cannot list directories or read files directly. "
-        "Very large result sets are cut off, "
-        "so ask for a narrower range if the result says it was truncated."
+        "Find files by name using a glob pattern such as *.py or test_*.py. "
+        "It matches file names only, so use grep to search inside files. "
+        "It returns paths, not file contents, so use read to see a file. "
+        "Results are capped, so use a narrower pattern or path if the result says it was truncated."
     ),
     args=GlobArgs,
 )

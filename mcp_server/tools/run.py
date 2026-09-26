@@ -15,9 +15,11 @@ class RunArgs(BaseModel):
 RUN_SPEC = ToolSpec(
     name=ToolName.RUN,
     description=(
-        "Run a shell command and return its output. "
-        "Use it to execute scripts or commands that are not covered by other tools. "
-        "Results are capped, so use a more specific command or filter if the result says it was truncated."
+        "Run a shell command and return its exit code, stdout and stderr. "
+        "Use it to run tests or other commands that read, grep, glob and edit cannot do. "
+        "Commands cannot ask for input, so use non-interactive flags. "
+        "Output is capped, so filter or narrow the command if the result says it was truncated. "
+        "Set description to a short note for the user about what the command is for."
     ),
     args=RunArgs,
 )
