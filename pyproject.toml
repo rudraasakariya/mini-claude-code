@@ -1,0 +1,9 @@
+[project]
+name = "mini-claude-code"
+version = "0.1.0"
+description = "Mini coding agent with agentic search, a code dependency graph, and an MCP tool server"
+requires-python = ">=3.13"
+dependencies = [
+    "openai",
+    "pydantic-settings",
+]
