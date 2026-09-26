@@ -1,5 +1,8 @@
 from pathlib import Path
 from mcp_server.errors import ToolError
+from mcp_server.schemas import ToolSpec
+from agent.state import ToolName
+from pydantic import BaseModel, Field
 
 IGNORED_DIRS = {".git", "__pycache__", "node_modules"}
 NO_MATCHES_MESSAGE = "No matches found."
@@ -7,6 +10,23 @@ TRUNCATION_NOTICE = (
     "[truncated: showing {shown} of {total} matches. "
     "Narrow the pattern, path.]"
 )
+
+
+class GlobArgs(BaseModel):
+    pattern: str = Field(description="The glob pattern to search for.")
+    path: str = Field(default=".", description="The root path to start searching from.")
+
+GLOB_SPEC = ToolSpec(
+    name=ToolName.GLOB,
+    description=(
+        "Search for files using a glob pattern. "
+        "It cannot list directories or read files directly. "
+        "Very large result sets are cut off, "
+        "so ask for a narrower range if the result says it was truncated."
+    ),
+    args=GlobArgs,
+)
+
 
 
 def glob(pattern: str, path: str = ".", *, max_results: int) -> str:
