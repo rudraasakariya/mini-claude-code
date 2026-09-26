@@ -1,6 +1,9 @@
 import re
 from pathlib import Path
 from mcp_server.errors import ToolError
+from mcp_server.schemas import ToolSpec
+from agent.state import ToolName
+from pydantic import BaseModel, Field
 
 IGNORED_DIRS = {".git", "__pycache__", "node_modules"}
 NO_MATCHES_MESSAGE = "No matches found."
@@ -8,6 +11,26 @@ TRUNCATION_NOTICE = (
     "[truncated: showing {shown} of {total} matches. "
     "Narrow the pattern, path or include filter.]"
 )
+
+class GrepArgs(BaseModel):
+   pattern: str = Field(description="The regex pattern to search for.")
+   path: str = Field(default=".", description="The root path to start searching from.")
+   include: str | None = Field(
+       default=None, description="A glob pattern to filter which files to search. If not provided, all files are searched."
+   )
+
+GREP_SPEC = ToolSpec(
+    name=ToolName.GREP,
+    description=(
+        "Search inside files for a regex pattern. Each match is returned as file:line: text. "
+        "Use it to find where something is defined or used. "
+        "It searches file contents, not file names, so use glob to find files by name. "
+        "It does not show surrounding code, so use read on a match to see more. "
+        "Results are capped, so narrow the pattern, path or include filter if the result says it was truncated."
+    ),
+    args=GrepArgs,
+)
+
 
 
 def grep(
