@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+from pydantic import SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 @dataclass(frozen=True)
@@ -19,3 +21,11 @@ class ToolSettings:
     max_read_lines: int = 200
     max_glob_results: int = 100
     max_run_output_chars: int = 10000
+
+
+class AzureSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", frozen=True)
+
+    azure_base_url: str
+    azure_deployment: str
+    azure_api_key: SecretStr
