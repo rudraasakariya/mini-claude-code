@@ -1,16 +1,21 @@
 import subprocess
-from mcp_server.errors import ToolError
-from mcp_server.schemas import ToolSpec
-from agent.state import ToolName
+
 from pydantic import BaseModel, Field
 
-OMITTED_MARKER = "\n[... {omitted} characters omitted ...]\n"
+from agent.state import ToolName
+from config.constants import ToolMessages
+from mcp_server.errors import ToolError
+from mcp_server.schemas import ToolSpec
 
 
 class RunArgs(BaseModel):
     command: str = Field(description="The shell command to run.")
     timeout: int = Field(description="The maximum time in seconds to allow the command to run.")
-    description: str = Field(default="", description="A description of what the command does. You can use this to provide context for the command, but it is not executed. And you should always try to provide this")
+    description: str = Field(
+        default="",
+        description="A short note for the user about what the command does. It is not executed. Always provide it.",
+    )
+
 
 RUN_SPEC = ToolSpec(
     name=ToolName.RUN,
@@ -30,7 +35,8 @@ def truncate_middle(text: str, max_length: int) -> str:
         return text
     half = max_length // 2
     omitted = len(text) - 2 * half
-    return text[:half] + OMITTED_MARKER.format(omitted=omitted) + text[-half:]
+    return text[:half] + ToolMessages.OUTPUT_OMITTED.format(omitted=omitted) + text[-half:]
+
 
 def run(command: str, timeout: int, description: str = "", *, max_output_chars: int) -> str:
     try:
@@ -43,11 +49,9 @@ def run(command: str, timeout: int, description: str = "", *, max_output_chars: 
             timeout=timeout,
         )
     except subprocess.TimeoutExpired as e:
-        raise ToolError(f"Command timed out after {timeout} seconds.") from e
+        raise ToolError(ToolMessages.COMMAND_TIMEOUT.format(timeout=timeout)) from e
 
-    output = (
-        f"exit code: {result.returncode}\n"
-        f"stdout:\n{result.stdout}\n"
-        f"stderr:\n{result.stderr}"
+    output = ToolMessages.COMMAND_OUTPUT.format(
+        exit_code=result.returncode, stdout=result.stdout, stderr=result.stderr
     )
     return truncate_middle(output, max_output_chars)

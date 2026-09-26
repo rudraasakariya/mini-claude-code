@@ -1,23 +1,23 @@
 import re
 from pathlib import Path
+
+from pydantic import BaseModel, Field
+
+from agent.state import ToolName
+from config.constants import ToolMessages
 from mcp_server.errors import ToolError
 from mcp_server.project_files import list_project_files
 from mcp_server.schemas import ToolSpec
-from agent.state import ToolName
-from pydantic import BaseModel, Field
 
-NO_MATCHES_MESSAGE = "No matches found."
-TRUNCATION_NOTICE = (
-    "[truncated: showing {shown} of {total} matches. "
-    "Narrow the pattern, path or include filter.]"
-)
 
 class GrepArgs(BaseModel):
-   pattern: str = Field(description="The regex pattern to search for.")
-   path: str = Field(default=".", description="The root path to start searching from.")
-   include: str | None = Field(
-       default=None, description="A glob pattern to filter which files to search. If not provided, all files are searched."
-   )
+    pattern: str = Field(description="The regex pattern to search for.")
+    path: str = Field(default=".", description="The root path to start searching from.")
+    include: str | None = Field(
+        default=None,
+        description="A glob pattern to filter which files to search. If not provided, all files are searched.",
+    )
+
 
 GREP_SPEC = ToolSpec(
     name=ToolName.GREP,
@@ -31,6 +31,7 @@ GREP_SPEC = ToolSpec(
     args=GrepArgs,
 )
 
+
 def grep(
     pattern: str,
     path: str = ".",
@@ -41,13 +42,11 @@ def grep(
     try:
         regex = re.compile(pattern)
     except re.error as e:
-        raise ToolError(f"Invalid regex pattern: {e}")
+        raise ToolError(ToolMessages.INVALID_REGEX.format(error=e)) from e
 
     root = Path(path)
     if not root.exists():
-        raise ToolError(
-            f"The path {path} does not exist. Use glob or grep to search for the right path."
-        )
+        raise ToolError(ToolMessages.PATH_NOT_FOUND.format(path=path))
 
     files = [root] if root.is_file() else list_project_files(root)
 
@@ -64,9 +63,11 @@ def grep(
                 matches.append(f"{file}:{number}: {line}")
 
     if not matches:
-        return NO_MATCHES_MESSAGE
+        return ToolMessages.NO_MATCHES
 
     shown = matches[:max_results]
     if len(matches) > max_results:
-        shown.append(TRUNCATION_NOTICE.format(shown=max_results, total=len(matches)))
+        shown.append(
+            ToolMessages.MATCHES_TRUNCATED.format(shown=max_results, total=len(matches))
+        )
     return "\n".join(shown)

@@ -1,23 +1,17 @@
 from typing import Callable
 
-from agent.state import Action, ToolName
-from config.settings import ToolSettings
-from mcp_server.errors import ToolError
-from mcp_server.tools.edit import edit_file
-from mcp_server.tools.glob import glob
-from mcp_server.tools.grep import grep
-from mcp_server.tools.read import read_file
-from mcp_server.tools.run import run
-from mcp_server.schemas import ToolSpec
-from mcp_server.tools.edit import EDIT_SPEC
-from mcp_server.tools.glob import GLOB_SPEC
-from mcp_server.tools.grep import GREP_SPEC
-from mcp_server.tools.read import READ_SPEC
-from mcp_server.tools.run import RUN_SPEC
 from pydantic import ValidationError
 
-ERROR_PREFIX = "Error: "
-TOOL_NOT_AVAILABLE = "Tool {tool} is not available yet."
+from agent.state import Action, ToolName
+from config.constants import ExecutorMessages
+from config.settings import ToolSettings
+from mcp_server.errors import ToolError
+from mcp_server.schemas import ToolSpec
+from mcp_server.tools.edit import EDIT_SPEC, edit_file
+from mcp_server.tools.glob import GLOB_SPEC, glob
+from mcp_server.tools.grep import GREP_SPEC, grep
+from mcp_server.tools.read import READ_SPEC, read_file
+from mcp_server.tools.run import RUN_SPEC, run
 
 TOOLS: dict[ToolName, tuple[ToolSpec, Callable[..., str]]] = {
     ToolName.READ: (READ_SPEC, read_file),
@@ -31,9 +25,9 @@ TOOLS: dict[ToolName, tuple[ToolSpec, Callable[..., str]]] = {
 def execute_action(action: Action, settings: ToolSettings) -> str:
     entry = TOOLS.get(action.tool)
     if entry is None:
-        return TOOL_NOT_AVAILABLE.format(tool=action.tool.value)
-    
-    spec , tool_func = entry
+        return ExecutorMessages.TOOL_NOT_AVAILABLE.format(tool=action.tool.value)
+
+    spec, tool_func = entry
 
     limits = {
         ToolName.GREP: {"max_results": settings.max_grep_results},
@@ -45,5 +39,5 @@ def execute_action(action: Action, settings: ToolSettings) -> str:
     try:
         validated_args = spec.args(**action.arguments)
         return tool_func(**validated_args.model_dump(), **limits.get(action.tool, {}))
-    except (ValidationError , ToolError) as e:
-        return f"{ERROR_PREFIX}{e}"
+    except (ValidationError, ToolError) as e:
+        return f"{ExecutorMessages.ERROR_PREFIX}{e}"

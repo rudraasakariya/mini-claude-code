@@ -1,20 +1,18 @@
 from pathlib import Path
+
+from pydantic import BaseModel, Field
+
+from agent.state import ToolName
+from config.constants import ToolMessages
 from mcp_server.errors import ToolError
 from mcp_server.project_files import list_project_files
 from mcp_server.schemas import ToolSpec
-from agent.state import ToolName
-from pydantic import BaseModel, Field
-
-NO_MATCHES_MESSAGE = "No matches found."
-TRUNCATION_NOTICE = (
-    "[truncated: showing {shown} of {total} matches. "
-    "Narrow the pattern, path.]"
-)
 
 
 class GlobArgs(BaseModel):
     pattern: str = Field(description="The glob pattern to search for.")
     path: str = Field(default=".", description="The root path to start searching from.")
+
 
 GLOB_SPEC = ToolSpec(
     name=ToolName.GLOB,
@@ -28,23 +26,19 @@ GLOB_SPEC = ToolSpec(
 )
 
 
-
 def glob(pattern: str, path: str = ".", *, max_results: int) -> str:
     root = Path(path)
     if not root.exists():
-        raise ToolError(
-            f"The path {path} does not exist. Use glob or grep to search for the right path."
-        )
-    results: list[str] = []
-    for file in list_project_files(root):
-        if file.match(pattern):
-            results.append(str(file))
+        raise ToolError(ToolMessages.PATH_NOT_FOUND.format(path=path))
+
+    results = [str(file) for file in list_project_files(root) if file.match(pattern)]
 
     if not results:
-        return NO_MATCHES_MESSAGE
-    glob_results = results[:max_results]
+        return ToolMessages.NO_MATCHES
+
+    shown = results[:max_results]
     if len(results) > max_results:
-        glob_results.append(
-            TRUNCATION_NOTICE.format(shown=max_results, total=len(results))
+        shown.append(
+            ToolMessages.MATCHES_TRUNCATED.format(shown=max_results, total=len(results))
         )
-    return "\n".join(glob_results)
+    return "\n".join(shown)

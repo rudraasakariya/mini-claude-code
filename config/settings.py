@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from config.constants import EnvConfig
+
 
 @dataclass(frozen=True)
 class LoopSettings:
@@ -24,7 +26,7 @@ class ToolSettings:
 
 
 class AzureSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", frozen=True)
+    model_config = SettingsConfigDict(env_file=EnvConfig.ENV_FILE, frozen=True)
 
     azure_base_url: str
     azure_deployment: str
