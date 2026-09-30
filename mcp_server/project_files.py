@@ -11,6 +11,7 @@ def list_project_files(root: Path) -> list[Path]:
             cwd=root,
             capture_output=True,
             text=True,
+            check=False,
         )
     except FileNotFoundError:
         return _walk_files(root)
