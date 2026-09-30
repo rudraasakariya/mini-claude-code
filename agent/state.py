@@ -4,7 +4,6 @@ from typing import Any
 
 
 class LoopState(Enum):
-    SUBMIT_CALLED = "submit_called"
     STEP_LIMIT_HIT = "step_limit_hit"
     TOKEN_BUDGET_HIT = "token_budget_hit"
     COST_CEILING_HIT = "cost_ceiling_hit"
@@ -21,7 +20,6 @@ class ToolName(Enum):
     FIND_CALLERS = "find_callers"
     FIND_TESTS_FOR = "find_tests_for"
     PATH_BETWEEN = "path_between"
-    SUBMIT = "submit"
 
 class MessagePhase(Enum):
     COMMENTARY = "commentary"

@@ -35,8 +35,6 @@ def check_stop_conditions(
     match last_turn:
         case None:
             pass  # nothing has happened yet; nothing to stop for
-        case ToolCallTurn(action=Action(tool=ToolName.SUBMIT)):
-            return LoopState.SUBMIT_CALLED
         case ToolCallTurn():
             pass  # a real tool call; the checks below still apply
         case TextTurn(phase=MessagePhase.FINAL_ANSWER):
