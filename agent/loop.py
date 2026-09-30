@@ -62,7 +62,12 @@ def check_stop_conditions(
         last_actions = [
             turn.action for turn in tool_call_turns[-loop.last_action_repeat_limit :]
         ]
-        if all(action == last_actions[0] for action in last_actions):
+        first = last_actions[0]
+        # call_id is new on every call, so compare only what the call does
+        if all(
+            (action.tool, action.arguments) == (first.tool, first.arguments)
+            for action in last_actions
+        ):
             return LoopState.REPEATED_ACTION
 
     return None
