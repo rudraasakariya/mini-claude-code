@@ -38,7 +38,7 @@ def check_stop_conditions(
         case ToolCallTurn():
             pass  # a real tool call; the checks below still apply
         case TextTurn(phase=MessagePhase.FINAL_ANSWER):
-            return LoopState.MODEL_REPLIED_WITHOUT_TOOL
+            return LoopState.FINAL_ANSWER_GIVEN
         case TextTurn():
             pass  # commentary or no phase: the model isn't done; keep going
 

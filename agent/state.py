@@ -8,7 +8,7 @@ class LoopState(Enum):
     TOKEN_BUDGET_HIT = "token_budget_hit"
     COST_CEILING_HIT = "cost_ceiling_hit"
     REPEATED_ACTION = "repeated_action"
-    MODEL_REPLIED_WITHOUT_TOOL = "model_replied_without_tool"
+    FINAL_ANSWER_GIVEN = "final_answer_given"
 
 class ToolName(Enum):
     GREP = "grep"
