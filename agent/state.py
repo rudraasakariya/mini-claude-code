@@ -22,7 +22,16 @@ class ToolName(Enum):
     FIND_TESTS_FOR = "find_tests_for"
     PATH_BETWEEN = "path_between"
     SUBMIT = "submit"
-    
+
+class MessagePhase(Enum):
+    COMMENTARY = "commentary"
+    FINAL_ANSWER = "final_answer"
+
+@dataclass
+class Message:
+    text: str
+    phase: MessagePhase | None = None
+
 @dataclass
 class Reasoning:
     id: str
@@ -41,10 +50,12 @@ class ToolCallTurn:
     action: Action
     observation: str
     reasoning: Reasoning | None = None
+    preamble: Message | None = None
 
 @dataclass
 class TextTurn:
     text: str
+    phase: MessagePhase | None = None
     reasoning: Reasoning | None = None
 
 Turn = ToolCallTurn | TextTurn

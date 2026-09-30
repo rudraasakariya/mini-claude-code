@@ -2,6 +2,7 @@ import json
 
 from openai import OpenAI
 from openai.types.responses import (
+    EasyInputMessageParam,
     FunctionToolParam,
     ResponseFunctionToolCall,
     ResponseInputParam,
@@ -15,6 +16,8 @@ from agent.executor import TOOLS, execute_action
 from agent.state import (
     Action,
     LoopState,
+    Message,
+    MessagePhase,
     Reasoning,
     State,
     TextTurn,
@@ -64,9 +67,17 @@ def check_stop_conditions(
     return None
 
 
+def to_assistant_input(message: Message) -> EasyInputMessageParam:
+    item: EasyInputMessageParam = {"role": "assistant", "content": message.text}
+    # phase is optional; only send it back when the model gave one
+    if message.phase is not None:
+        item["phase"] = message.phase.value
+    return item
+
+
 def call_model(
     client: OpenAI, model: str, state: State
-) -> tuple[Action | str, Reasoning | None]:
+) -> tuple[Action | Message, Reasoning | None, Message | None]:
     tools: list[FunctionToolParam] = [
         to_azure_tool_definition(tool_specification)
         for tool_specification, _ in TOOLS.values()
@@ -81,9 +92,11 @@ def call_model(
             })
             
         match turn:
-            case TextTurn(text=text):
-                input_items.append({"role": "assistant", "content": text})
-            case ToolCallTurn(action=action, observation=observation):
+            case TextTurn(text=text, phase=phase):
+                input_items.append(to_assistant_input(Message(text=text, phase=phase)))
+            case ToolCallTurn(action=action, observation=observation, preamble=preamble):
+                if preamble is not None:
+                    input_items.append(to_assistant_input(preamble))
                 input_items.append(
                     {
                         "type": "function_call",
@@ -108,11 +121,15 @@ def call_model(
         parallel_tool_calls=False,
     )
 
-    # response.output can include items we don't act on directly (e.g. a
-    # reasoning item from a reasoning model), so scan for the first item
-    # that is actually a tool call or a message, rather than assuming
-    # index 0. A reasoning item, if present, is captured along the way.
+    # response.output can hold several items in one response: a reasoning
+    # item, a message, and a function call can all come back together
+    # (e.g. [reasoning, message(phase=commentary), function_call]). So scan
+    # every item instead of stopping at the first one. If there is a
+    # function call, it is the action and any message is its preamble; a
+    # message is only the model's reply when no function call came with it.
     reasoning: Reasoning | None = None
+    message: Message | None = None
+    action: Action | None = None
     for call in response.output:
         match call:
             case ResponseFunctionToolCall():
@@ -120,13 +137,13 @@ def call_model(
                 action = Action(
                     tool=ToolName(call.name), call_id=call.call_id, arguments=arguments
                 )
-                return action, reasoning
             case ResponseOutputMessage():
+                phase = MessagePhase(call.phase) if call.phase is not None else None
                 match call.content[0]:
                     case ResponseOutputText():
-                        return call.content[0].text, reasoning
+                        message = Message(text=call.content[0].text, phase=phase)
                     case ResponseOutputRefusal():
-                        return call.content[0].refusal, reasoning
+                        message = Message(text=call.content[0].refusal, phase=phase)
                     case _:
                         raise ValueError(
                             f"Unexpected message content type: {type(call.content[0])}"
@@ -142,6 +159,10 @@ def call_model(
             case _:
                 continue  # unrecognized item type; keep looking
 
+    if action is not None:
+        return action, reasoning, message
+    if message is not None:
+        return message, reasoning, None
     raise ValueError(
         f"No function call or message found in response output: {[item.type for item in response.output]}"
     )
@@ -161,16 +182,23 @@ def run_agent_loop(
             state.stop_reason = stop_reason
             break
 
-        result, reasoning = call_model(client, model, state)
+        result, reasoning, preamble = call_model(client, model, state)
 
         match result:
             case Action():
                 observation = execute_action(result, tool_settings)
                 state.conversation.append(
-                    ToolCallTurn(action=result, observation=observation, reasoning=reasoning)
+                    ToolCallTurn(
+                        action=result,
+                        observation=observation,
+                        reasoning=reasoning,
+                        preamble=preamble,
+                    )
                 )
-            case str():
-                state.conversation.append(TextTurn(text=result, reasoning=reasoning))
+            case Message(text=text, phase=phase):
+                state.conversation.append(
+                    TextTurn(text=text, phase=phase, reasoning=reasoning)
+                )
 
         # Update token count and spend (fake values for now)
         state.token_count += 10  # fake increment
