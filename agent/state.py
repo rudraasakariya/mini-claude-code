@@ -1,6 +1,7 @@
-from dataclasses import dataclass , field
-from typing import Any
+from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any
+
 
 class LoopState(Enum):
     SUBMIT_CALLED = "submit_called"
@@ -8,6 +9,7 @@ class LoopState(Enum):
     TOKEN_BUDGET_HIT = "token_budget_hit"
     COST_CEILING_HIT = "cost_ceiling_hit"
     REPEATED_ACTION = "repeated_action"
+    MODEL_REPLIED_WITHOUT_TOOL = "model_replied_without_tool"
 
 class ToolName(Enum):
     GREP = "grep"
@@ -24,17 +26,24 @@ class ToolName(Enum):
 @dataclass
 class Action:
     tool: ToolName
+    call_id: str
     arguments: dict[str, Any] = field(default_factory=dict)
 
 @dataclass
-class Step:
+class ToolCallTurn:
     action: Action
     observation: str
 
 @dataclass
+class TextTurn:
+    text: str
+
+Turn = ToolCallTurn | TextTurn
+
+@dataclass
 class State:
     task: str
-    steps: list[Step] = field(default_factory=list)
+    conversation: list[Turn] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
     token_count: int = 0
     spend: float = 0.0
