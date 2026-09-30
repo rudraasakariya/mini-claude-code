@@ -44,13 +44,12 @@ def check_stop_conditions(
         case TextTurn():
             pass  # commentary or no phase: the model isn't done; keep going
 
-    # match/case is a statement, not an expression, so a list comprehension
-    # still needs isinstance here rather than a case pattern.
     tool_call_turns = [
         turn for turn in state.conversation if isinstance(turn, ToolCallTurn)
     ]
 
-    if len(tool_call_turns) >= loop.max_steps:
+    # every model call counts as a step, text replies included
+    if len(state.conversation) >= loop.max_steps:
         return LoopState.STEP_LIMIT_HIT
 
     if state.token_count >= budget.max_tokens:
