@@ -39,8 +39,10 @@ def check_stop_conditions(
             return LoopState.SUBMIT_CALLED
         case ToolCallTurn():
             pass  # a real tool call; the checks below still apply
-        case TextTurn():
+        case TextTurn(phase=MessagePhase.FINAL_ANSWER):
             return LoopState.MODEL_REPLIED_WITHOUT_TOOL
+        case TextTurn():
+            pass  # commentary or no phase: the model isn't done; keep going
 
     # match/case is a statement, not an expression, so a list comprehension
     # still needs isinstance here rather than a case pattern.
