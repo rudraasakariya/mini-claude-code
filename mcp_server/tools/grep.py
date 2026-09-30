@@ -7,7 +7,7 @@ from agent.state import ToolName
 from config.constants import ToolMessages
 from mcp_server.errors import ToolError
 from mcp_server.project_files import list_project_files
-from mcp_server.schemas import ToolSpec
+from mcp_server.schemas import ToolSpecification
 
 
 class GrepArgs(BaseModel):
@@ -19,7 +19,7 @@ class GrepArgs(BaseModel):
     )
 
 
-GREP_SPEC = ToolSpec(
+GREP_SPEC = ToolSpecification(
     name=ToolName.GREP,
     description=(
         "Search inside files for a regex pattern. Each match is returned as file:line: text. "

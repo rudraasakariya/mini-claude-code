@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from agent.state import ToolName
 from config.constants import ToolMessages
 from mcp_server.errors import ToolError
-from mcp_server.schemas import ToolSpec
+from mcp_server.schemas import ToolSpecification
 
 
 class ReadArgs(BaseModel):
@@ -14,7 +14,7 @@ class ReadArgs(BaseModel):
     end_line: int = Field(description="Last line to read, inclusive.")
 
 
-READ_SPEC = ToolSpec(
+READ_SPEC = ToolSpecification(
     name=ToolName.READ,
     description=(
         "Read a range of lines from one file. Each line is returned with its line number. "

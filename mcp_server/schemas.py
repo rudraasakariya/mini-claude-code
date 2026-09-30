@@ -6,7 +6,7 @@ from agent.state import ToolName
 
 
 @dataclass(frozen=True)
-class ToolSpec:
+class ToolSpecification:
     name: ToolName
     description: str
     args: type[BaseModel]

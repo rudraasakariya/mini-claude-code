@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from agent.state import ToolName
 from config.constants import ToolMessages
 from mcp_server.errors import ToolError
-from mcp_server.schemas import ToolSpec
+from mcp_server.schemas import ToolSpecification
 
 
 class RunArgs(BaseModel):
@@ -17,7 +17,7 @@ class RunArgs(BaseModel):
     )
 
 
-RUN_SPEC = ToolSpec(
+RUN_SPEC = ToolSpecification(
     name=ToolName.RUN,
     description=(
         "Run a shell command and return its exit code, stdout and stderr. "
@@ -47,6 +47,7 @@ def run(command: str, timeout: int, description: str = "", *, max_output_chars: 
             stdin=subprocess.DEVNULL,
             text=True,
             timeout=timeout,
+            check=False,
         )
     except subprocess.TimeoutExpired as e:
         raise ToolError(ToolMessages.COMMAND_TIMEOUT.format(timeout=timeout)) from e

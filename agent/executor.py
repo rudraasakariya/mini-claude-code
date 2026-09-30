@@ -1,4 +1,4 @@
-from typing import Callable
+from collections.abc import Callable
 
 from pydantic import ValidationError
 
@@ -6,14 +6,14 @@ from agent.state import Action, ToolName
 from config.constants import ExecutorMessages
 from config.settings import ToolSettings
 from mcp_server.errors import ToolError
-from mcp_server.schemas import ToolSpec
+from mcp_server.schemas import ToolSpecification
 from mcp_server.tools.edit import EDIT_SPEC, edit_file
 from mcp_server.tools.glob import GLOB_SPEC, glob
 from mcp_server.tools.grep import GREP_SPEC, grep
 from mcp_server.tools.read import READ_SPEC, read_file
 from mcp_server.tools.run import RUN_SPEC, run
 
-TOOLS: dict[ToolName, tuple[ToolSpec, Callable[..., str]]] = {
+TOOLS: dict[ToolName, tuple[ToolSpecification, Callable[..., str]]] = {
     ToolName.READ: (READ_SPEC, read_file),
     ToolName.GREP: (GREP_SPEC, grep),
     ToolName.RUN: (RUN_SPEC, run),

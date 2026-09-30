@@ -6,7 +6,7 @@ from agent.state import ToolName
 from config.constants import ToolMessages
 from mcp_server.errors import ToolError
 from mcp_server.project_files import list_project_files
-from mcp_server.schemas import ToolSpec
+from mcp_server.schemas import ToolSpecification
 
 
 class GlobArgs(BaseModel):
@@ -14,7 +14,7 @@ class GlobArgs(BaseModel):
     path: str = Field(default=".", description="The root path to start searching from.")
 
 
-GLOB_SPEC = ToolSpec(
+GLOB_SPEC = ToolSpecification(
     name=ToolName.GLOB,
     description=(
         "Find files by name using a glob pattern such as *.py or test_*.py. "

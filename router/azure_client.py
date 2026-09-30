@@ -1,9 +1,10 @@
-from typing import Any
 
 from openai import OpenAI
+from openai.types.responses import FunctionToolParam
 
 from config.settings import AzureSettings
-from mcp_server.schemas import ToolSpec
+from mcp_server.schemas import ToolSpecification
+
 
 def make_client(settings: AzureSettings) -> OpenAI:
     return OpenAI(
@@ -11,10 +12,11 @@ def make_client(settings: AzureSettings) -> OpenAI:
         api_key=settings.azure_api_key.get_secret_value(),
     )
     
-def to_tool_definition(spec: ToolSpec) -> dict[str , Any]:
+def to_azure_tool_definition(spec: ToolSpecification) -> FunctionToolParam:
     return {
         "type": "function",
         "name": spec.name.value,
         "description": spec.description,
         "parameters": spec.args.model_json_schema(),
+        "strict": False,
     }

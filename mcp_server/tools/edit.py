@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from agent.state import ToolName
 from config.constants import ToolMessages
 from mcp_server.errors import ToolError
-from mcp_server.schemas import ToolSpec
+from mcp_server.schemas import ToolSpecification
 
 
 class EditArgs(BaseModel):
@@ -15,7 +15,7 @@ class EditArgs(BaseModel):
     new_string: str = Field(description="The string to replace the old string with in the file.")
 
 
-EDIT_SPEC = ToolSpec(
+EDIT_SPEC = ToolSpecification(
     name=ToolName.EDIT,
     description=(
         "Replace one exact piece of text in a file with new text. "
