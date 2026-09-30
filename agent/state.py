@@ -22,6 +22,13 @@ class ToolName(Enum):
     FIND_TESTS_FOR = "find_tests_for"
     PATH_BETWEEN = "path_between"
     SUBMIT = "submit"
+    
+@dataclass
+class Reasoning:
+    id: str
+    summary: list[str] = field(default_factory=list)
+    content: list[str] = field(default_factory=list)
+    encrypted_content: str | None = None
 
 @dataclass
 class Action:
@@ -33,10 +40,12 @@ class Action:
 class ToolCallTurn:
     action: Action
     observation: str
+    reasoning: Reasoning | None = None
 
 @dataclass
 class TextTurn:
     text: str
+    reasoning: Reasoning | None = None
 
 Turn = ToolCallTurn | TextTurn
 

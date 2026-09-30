@@ -12,7 +12,15 @@ from openai.types.responses import (
 )
 
 from agent.executor import TOOLS, execute_action
-from agent.state import Action, LoopState, State, TextTurn, ToolCallTurn, ToolName
+from agent.state import (
+    Action,
+    LoopState,
+    Reasoning,
+    State,
+    TextTurn,
+    ToolCallTurn,
+    ToolName,
+)
 from config.settings import BudgetSettings, LoopSettings, ToolSettings
 from router.azure_client import to_azure_tool_definition
 
@@ -56,7 +64,9 @@ def check_stop_conditions(
     return None
 
 
-def call_model(client: OpenAI, model: str, state: State) -> Action | str:
+def call_model(
+    client: OpenAI, model: str, state: State
+) -> tuple[Action | str, Reasoning | None]:
     tools: list[FunctionToolParam] = [
         to_azure_tool_definition(tool_specification)
         for tool_specification, _ in TOOLS.values()
@@ -64,6 +74,12 @@ def call_model(client: OpenAI, model: str, state: State) -> Action | str:
     input_items: ResponseInputParam = [{"role": "user", "content": state.task}]
 
     for turn in state.conversation:
+        if turn.reasoning is not None:
+            input_items.append({  # type: ignore[arg-type]
+                "type": "reasoning",
+                **turn.reasoning.__dict__,
+            })
+            
         match turn:
             case TextTurn(text=text):
                 input_items.append({"role": "assistant", "content": text})
@@ -92,27 +108,36 @@ def call_model(client: OpenAI, model: str, state: State) -> Action | str:
         parallel_tool_calls=False,
     )
 
-    # response.output can include items we don't act on (e.g. a reasoning
-    # item from a reasoning model), so scan for the first item that is
-    # actually a tool call or a message, rather than assuming index 0.
+    # response.output can include items we don't act on directly (e.g. a
+    # reasoning item from a reasoning model), so scan for the first item
+    # that is actually a tool call or a message, rather than assuming
+    # index 0. A reasoning item, if present, is captured along the way.
+    reasoning: Reasoning | None = None
     for call in response.output:
         match call:
             case ResponseFunctionToolCall():
                 arguments = json.loads(call.arguments)
-                return Action(
+                action = Action(
                     tool=ToolName(call.name), call_id=call.call_id, arguments=arguments
                 )
+                return action, reasoning
             case ResponseOutputMessage():
                 match call.content[0]:
                     case ResponseOutputText():
-                        return call.content[0].text
+                        return call.content[0].text, reasoning
                     case ResponseOutputRefusal():
-                        return call.content[0].refusal
+                        return call.content[0].refusal, reasoning
                     case _:
                         raise ValueError(
                             f"Unexpected message content type: {type(call.content[0])}"
                         )
             case ResponseReasoningItem():
+                reasoning = Reasoning(
+                    id=call.id,
+                    summary=[s.text for s in call.summary],
+                    content=[c.text for c in (call.content or [])],
+                    encrypted_content=call.encrypted_content,
+                )
                 continue  # not actionable; keep looking
             case _:
                 continue  # unrecognized item type; keep looking
@@ -136,16 +161,16 @@ def run_agent_loop(
             state.stop_reason = stop_reason
             break
 
-        result = call_model(client, model, state)
+        result, reasoning = call_model(client, model, state)
 
         match result:
             case Action():
                 observation = execute_action(result, tool_settings)
                 state.conversation.append(
-                    ToolCallTurn(action=result, observation=observation)
+                    ToolCallTurn(action=result, observation=observation, reasoning=reasoning)
                 )
             case str():
-                state.conversation.append(TextTurn(text=result))
+                state.conversation.append(TextTurn(text=result, reasoning=reasoning))
 
         # Update token count and spend (fake values for now)
         state.token_count += 10  # fake increment
