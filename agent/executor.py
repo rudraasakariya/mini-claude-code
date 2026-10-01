@@ -8,18 +8,18 @@ from config.constants import ExecutorMessages
 from config.settings import ToolSettings
 from mcp_server.errors import ToolError
 from mcp_server.schemas import ToolSpecification
-from mcp_server.tools.edit import EDIT_SPEC, edit_file
-from mcp_server.tools.glob import GLOB_SPEC, glob
-from mcp_server.tools.grep import GREP_SPEC, grep
-from mcp_server.tools.read import READ_SPEC, read_file
-from mcp_server.tools.run import RUN_SPEC, run
+from mcp_server.tools.edit import EDIT_TOOL_SPECIFICATION, edit_file
+from mcp_server.tools.glob import GLOB_TOOL_SPECIFICATION, glob
+from mcp_server.tools.grep import GREP_TOOL_SPECIFICATION, grep
+from mcp_server.tools.read import READ_TOOL_SPECIFICATION, read_file
+from mcp_server.tools.run import RUN_TOOL_SPECIFICATION, run
 
 TOOLS: dict[ToolName, tuple[ToolSpecification, Callable[..., str]]] = {
-    ToolName.READ: (READ_SPEC, read_file),
-    ToolName.GREP: (GREP_SPEC, grep),
-    ToolName.RUN: (RUN_SPEC, run),
-    ToolName.GLOB: (GLOB_SPEC, glob),
-    ToolName.EDIT: (EDIT_SPEC, edit_file),
+    ToolName.READ: (READ_TOOL_SPECIFICATION, read_file),
+    ToolName.GREP: (GREP_TOOL_SPECIFICATION, grep),
+    ToolName.RUN: (RUN_TOOL_SPECIFICATION, run),
+    ToolName.GLOB: (GLOB_TOOL_SPECIFICATION, glob),
+    ToolName.EDIT: (EDIT_TOOL_SPECIFICATION, edit_file),
 }
 
 

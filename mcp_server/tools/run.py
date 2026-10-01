@@ -18,7 +18,7 @@ class RunArgs(BaseModel):
     )
 
 
-RUN_SPEC = ToolSpecification(
+RUN_TOOL_SPECIFICATION = ToolSpecification(
     name=ToolName.RUN,
     description=(
         "Run a shell command and return its exit code, stdout and stderr. "

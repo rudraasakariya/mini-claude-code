@@ -15,7 +15,7 @@ class GlobArgs(BaseModel):
     path: str = Field(default=".", description="The root path to start searching from.")
 
 
-GLOB_SPEC = ToolSpecification(
+GLOB_TOOL_SPECIFICATION = ToolSpecification(
     name=ToolName.GLOB,
     description=(
         "Find files by name using a glob pattern such as *.py or test_*.py. "

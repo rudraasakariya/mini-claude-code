@@ -20,7 +20,7 @@ class GrepArgs(BaseModel):
     )
 
 
-GREP_SPEC = ToolSpecification(
+GREP_TOOL_SPECIFICATION = ToolSpecification(
     name=ToolName.GREP,
     description=(
         "Search inside files for a regex pattern. Each match is returned as file:line: text. "

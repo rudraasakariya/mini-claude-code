@@ -17,7 +17,7 @@ class ReadArgs(BaseModel):
     end_line: int = Field(description="Last line to read, inclusive.")
 
 
-READ_SPEC = ToolSpecification(
+READ_TOOL_SPECIFICATION = ToolSpecification(
     name=ToolName.READ,
     description=(
         "Read a range of lines from one file. Each line is returned with its line number. "

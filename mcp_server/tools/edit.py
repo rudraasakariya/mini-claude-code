@@ -16,7 +16,7 @@ class EditArgs(BaseModel):
     new_string: str = Field(description="The string to replace the old string with in the file.")
 
 
-EDIT_SPEC = ToolSpecification(
+EDIT_TOOL_SPECIFICATION = ToolSpecification(
     name=ToolName.EDIT,
     description=(
         "Replace one exact piece of text in a file with new text. "
