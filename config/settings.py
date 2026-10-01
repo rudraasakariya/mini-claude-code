@@ -34,7 +34,15 @@ class AzureSettings(BaseSettings):
     azure_base_url: str
     azure_deployment: str
     azure_api_key: SecretStr
-    
+
+
+@dataclass(frozen=True)
+class OpenAISettings:
+    max_retries: int = 5
+    timeout_seconds: float = 600.0
+    connect_timeout_seconds: float = 5.0
+
+
 @dataclass(frozen=True)
 class WorkSpaceSettings:
     root_path: Path = field(default_factory=lambda: Path.cwd().resolve())

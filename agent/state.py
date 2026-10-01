@@ -10,6 +10,7 @@ class LoopState(Enum):
     REPEATED_ACTION = "repeated_action"
     INVALID_CALL_LIMIT_HIT = "invalid_call_limit_hit"
     FINAL_ANSWER_GIVEN = "final_answer_given"
+    API_ERROR = "api_error"
 
 class ToolName(Enum):
     GREP = "grep"

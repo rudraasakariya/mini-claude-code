@@ -1,6 +1,6 @@
 import json
 
-from openai import OpenAI
+from openai import APIError, OpenAI
 from openai.types.responses import (
     EasyInputMessageParam,
     FunctionToolParam,
@@ -247,7 +247,12 @@ def run_agent_loop(
             state.stop_reason = stop_reason
             break
 
-        response = call_model(client, model, state)
+        try:
+            response = call_model(client, model, state)
+        except APIError:
+            state.stop_reason = LoopState.API_ERROR
+            break
+
         result, reasoning, preamble = parse_response(response)
 
         match result:
