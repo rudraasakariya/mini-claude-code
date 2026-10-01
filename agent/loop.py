@@ -16,6 +16,7 @@ from openai.types.responses import (
 from agent.executor import TOOLS, execute_action
 from agent.state import (
     Action,
+    InvalidToolCall,
     LoopState,
     Message,
     MessagePhase,
@@ -62,10 +63,21 @@ def check_stop_conditions(
     if state.spend >= budget.max_spend:
         return LoopState.COST_CEILING_HIT
 
-    if len(tool_call_turns) >= loop.last_action_repeat_limit:
-        last_actions = [
-            turn.action for turn in tool_call_turns[-loop.last_action_repeat_limit :]
-        ]
+    # count invalid calls in a row at the end; a real tool call resets it
+    invalid_calls_in_a_row = 0
+    for turn in reversed(tool_call_turns):
+        if not isinstance(turn.action, InvalidToolCall):
+            break
+        invalid_calls_in_a_row += 1
+    if invalid_calls_in_a_row >= loop.max_consecutive_invalid_calls:
+        return LoopState.INVALID_CALL_LIMIT_HIT
+
+    # only real actions count as repeats; invalid calls are capped above
+    actions = [
+        turn.action for turn in tool_call_turns if isinstance(turn.action, Action)
+    ]
+    if len(actions) >= loop.last_action_repeat_limit:
+        last_actions = actions[-loop.last_action_repeat_limit :]
         first = last_actions[0]
         # call_id is new on every call, so compare only what the call does
         if all(
@@ -83,9 +95,18 @@ def build_input(state: State) -> ResponseInputParam:
     for turn in state.conversation:
         if turn.reasoning is not None:
             input_items.append(
-                {  # type: ignore[arg-type]
+                {
                     "type": "reasoning",
-                    **turn.reasoning.__dict__,
+                    "id": turn.reasoning.id,
+                    "summary": [
+                        {"type": "summary_text", "text": text}
+                        for text in turn.reasoning.summary
+                    ],
+                    "content": [
+                        {"type": "reasoning_text", "text": text}
+                        for text in turn.reasoning.content
+                    ],
+                    "encrypted_content": turn.reasoning.encrypted_content,
                 }
             )
 
@@ -97,12 +118,20 @@ def build_input(state: State) -> ResponseInputParam:
             ):
                 if preamble is not None:
                     input_items.append(to_assistant_input(preamble))
+                # replay exactly what the model sent, even when it was invalid
+                match action:
+                    case Action(tool=tool, arguments=parsed_arguments):
+                        name = tool.value
+                        arguments = json.dumps(parsed_arguments)
+                    case InvalidToolCall(name=raw_name, arguments=raw_arguments):
+                        name = raw_name
+                        arguments = raw_arguments
                 input_items.append(
                     {
                         "type": "function_call",
                         "call_id": action.call_id,
-                        "name": action.tool.value,
-                        "arguments": json.dumps(action.arguments),
+                        "name": name,
+                        "arguments": arguments,
                     }
                 )
                 input_items.append(
@@ -141,9 +170,25 @@ def call_model(client: OpenAI, model: str, state: State) -> Response:
     return response
 
 
+def to_action(call: ResponseFunctionToolCall) -> Action | InvalidToolCall:
+    # keep exactly what the model sent if it can't become a real Action
+    invalid = InvalidToolCall(
+        name=call.name, call_id=call.call_id, arguments=call.arguments
+    )
+    try:
+        tool = ToolName(call.name)
+        arguments = json.loads(call.arguments)
+    except ValueError:  # unknown tool name, or broken JSON
+        return invalid
+    # a tool that isn't built yet, or valid JSON that isn't an object
+    if tool not in TOOLS or not isinstance(arguments, dict):
+        return invalid
+    return Action(tool=tool, call_id=call.call_id, arguments=arguments)
+
+
 def parse_response(
     response: Response,
-) -> tuple[Action | Message, Reasoning | None, Message | None]:
+) -> tuple[Action | InvalidToolCall | Message, Reasoning | None, Message | None]:
     # response.output can hold several items in one response: a reasoning
     # item, a message, and a function call can all come back together
     # (e.g. [reasoning, message(phase=commentary), function_call]). So scan
@@ -152,14 +197,11 @@ def parse_response(
     # message is only the model's reply when no function call came with it.
     reasoning: Reasoning | None = None
     message: Message | None = None
-    action: Action | None = None
+    action: Action | InvalidToolCall | None = None
     for item in response.output:
         match item:
             case ResponseFunctionToolCall():
-                arguments = json.loads(item.arguments)
-                action = Action(
-                    tool=ToolName(item.name), call_id=item.call_id, arguments=arguments
-                )
+                action = to_action(item)
             case ResponseOutputMessage():
                 phase = MessagePhase(item.phase) if item.phase is not None else None
                 match item.content[0]:
@@ -209,7 +251,7 @@ def run_agent_loop(
         result, reasoning, preamble = parse_response(response)
 
         match result:
-            case Action():
+            case Action() | InvalidToolCall():
                 observation = execute_action(
                     result, tool_settings, root_path=workspace_settings.root_path
                 )

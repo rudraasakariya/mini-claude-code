@@ -3,7 +3,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from agent.state import Action, ToolName
+from agent.state import Action, InvalidToolCall, ToolName
 from config.constants import ExecutorMessages
 from config.settings import ToolSettings
 from mcp_server.errors import ToolError
@@ -23,12 +23,18 @@ TOOLS: dict[ToolName, tuple[ToolSpecification, Callable[..., str]]] = {
 }
 
 
-def execute_action(action: Action, settings: ToolSettings, root_path: Path) -> str:
-    entry = TOOLS.get(action.tool)
-    if entry is None:
-        return ExecutorMessages.TOOL_NOT_AVAILABLE.format(tool=action.tool.value)
+def execute_action(
+    action: Action | InvalidToolCall, settings: ToolSettings, root_path: Path
+) -> str:
+    if isinstance(action, InvalidToolCall):
+        available = ", ".join(tool.value for tool in TOOLS)
+        message = ExecutorMessages.INVALID_TOOL_CALL.format(
+            tool=action.name, available=available
+        )
+        return f"{ExecutorMessages.ERROR_PREFIX}{message}"
 
-    specification, tool_function = entry
+    # parse_response only builds an Action for a tool in TOOLS
+    specification, tool_function = TOOLS[action.tool]
 
     limits = {
         ToolName.GREP: {"max_results": settings.max_grep_results},

@@ -49,7 +49,10 @@ class ToolMessages:
 
 class ExecutorMessages:
     ERROR_PREFIX: Final[str] = "Error: "
-    TOOL_NOT_AVAILABLE: Final[str] = "Tool {tool} is not available yet."
+    INVALID_TOOL_CALL: Final[str] = (
+        "Invalid call to {tool}. The tool must be one of: {available}, "
+        "and the arguments must be a JSON object."
+    )
 
 
 class FileListing:

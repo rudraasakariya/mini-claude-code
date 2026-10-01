@@ -8,6 +8,7 @@ class LoopState(Enum):
     TOKEN_BUDGET_HIT = "token_budget_hit"
     COST_CEILING_HIT = "cost_ceiling_hit"
     REPEATED_ACTION = "repeated_action"
+    INVALID_CALL_LIMIT_HIT = "invalid_call_limit_hit"
     FINAL_ANSWER_GIVEN = "final_answer_given"
 
 class ToolName(Enum):
@@ -42,10 +43,16 @@ class Action:
     tool: ToolName
     call_id: str
     arguments: dict[str, Any] = field(default_factory=dict)
+    
+@dataclass
+class InvalidToolCall:
+    name: str
+    call_id: str
+    arguments: str
 
 @dataclass
 class ToolCallTurn:
-    action: Action
+    action: Action | InvalidToolCall
     observation: str
     reasoning: Reasoning | None = None
     preamble: Message | None = None
