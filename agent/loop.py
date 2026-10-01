@@ -4,6 +4,7 @@ from openai import OpenAI
 from openai.types.responses import (
     EasyInputMessageParam,
     FunctionToolParam,
+    Response,
     ResponseFunctionToolCall,
     ResponseInputParam,
     ResponseOutputMessage,
@@ -76,21 +77,7 @@ def check_stop_conditions(
     return None
 
 
-def to_assistant_input(message: Message) -> EasyInputMessageParam:
-    item: EasyInputMessageParam = {"role": "assistant", "content": message.text}
-    # phase is optional; only send it back when the model gave one
-    if message.phase is not None:
-        item["phase"] = message.phase.value
-    return item
-
-
-def call_model(
-    client: OpenAI, model: str, state: State
-) -> tuple[Action | Message, Reasoning | None, Message | None]:
-    tools: list[FunctionToolParam] = [
-        to_azure_tool_definition(tool_specification)
-        for tool_specification, _ in TOOLS.values()
-    ]
+def build_input(state: State) -> ResponseInputParam:
     input_items: ResponseInputParam = [{"role": "user", "content": state.task}]
 
     for turn in state.conversation:
@@ -126,6 +113,24 @@ def call_model(
                     }
                 )
 
+    return input_items
+
+
+def to_assistant_input(message: Message) -> EasyInputMessageParam:
+    item: EasyInputMessageParam = {"role": "assistant", "content": message.text}
+    # phase is optional; only send it back when the model gave one
+    if message.phase is not None:
+        item["phase"] = message.phase.value
+    return item
+
+
+def call_model(client: OpenAI, model: str, state: State) -> Response:
+    tools: list[FunctionToolParam] = [
+        to_azure_tool_definition(tool_specification)
+        for tool_specification, _ in TOOLS.values()
+    ]
+    input_items = build_input(state)
+
     response = client.responses.create(
         model=model,
         instructions="You are a coding agent. Use the tools to solve the task.",
@@ -133,7 +138,12 @@ def call_model(
         tools=tools,
         parallel_tool_calls=False,
     )
+    return response
 
+
+def parse_response(
+    response: Response,
+) -> tuple[Action | Message, Reasoning | None, Message | None]:
     # response.output can hold several items in one response: a reasoning
     # item, a message, and a function call can all come back together
     # (e.g. [reasoning, message(phase=commentary), function_call]). So scan
@@ -143,34 +153,33 @@ def call_model(
     reasoning: Reasoning | None = None
     message: Message | None = None
     action: Action | None = None
-    for call in response.output:
-        match call:
+    for item in response.output:
+        match item:
             case ResponseFunctionToolCall():
-                arguments = json.loads(call.arguments)
+                arguments = json.loads(item.arguments)
                 action = Action(
-                    tool=ToolName(call.name), call_id=call.call_id, arguments=arguments
+                    tool=ToolName(item.name), call_id=item.call_id, arguments=arguments
                 )
             case ResponseOutputMessage():
-                phase = MessagePhase(call.phase) if call.phase is not None else None
-                match call.content[0]:
+                phase = MessagePhase(item.phase) if item.phase is not None else None
+                match item.content[0]:
                     case ResponseOutputText():
-                        message = Message(text=call.content[0].text, phase=phase)
+                        message = Message(text=item.content[0].text, phase=phase)
                     case ResponseOutputRefusal():
-                        message = Message(text=call.content[0].refusal, phase=phase)
+                        message = Message(text=item.content[0].refusal, phase=phase)
                     case _:
                         raise ValueError(
-                            f"Unexpected message content type: {type(call.content[0])}"
+                            f"Unexpected message content type: {type(item.content[0])}"
                         )
             case ResponseReasoningItem():
                 reasoning = Reasoning(
-                    id=call.id,
-                    summary=[s.text for s in call.summary],
-                    content=[c.text for c in (call.content or [])],
-                    encrypted_content=call.encrypted_content,
+                    id=item.id,
+                    summary=[s.text for s in item.summary],
+                    content=[c.text for c in (item.content or [])],
+                    encrypted_content=item.encrypted_content,
                 )
-                continue  # not actionable; keep looking
             case _:
-                continue  # unrecognized item type; keep looking
+                pass  # an item type we don't act on
 
     if action is not None:
         return action, reasoning, message
@@ -196,7 +205,8 @@ def run_agent_loop(
             state.stop_reason = stop_reason
             break
 
-        result, reasoning, preamble = call_model(client, model, state)
+        response = call_model(client, model, state)
+        result, reasoning, preamble = parse_response(response)
 
         match result:
             case Action():
