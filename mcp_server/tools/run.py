@@ -1,4 +1,5 @@
 import subprocess
+from pathlib import Path
 
 from pydantic import BaseModel, Field
 
@@ -38,10 +39,11 @@ def truncate_middle(text: str, max_length: int) -> str:
     return text[:half] + ToolMessages.OUTPUT_OMITTED.format(omitted=omitted) + text[-half:]
 
 
-def run(command: str, timeout: int, description: str = "", *, max_output_chars: int) -> str:
+def run(command: str, timeout: int, description: str = "", *, root_path: Path, max_output_chars: int) -> str:
     try:
         result = subprocess.run(
             command,
+            cwd=root_path,
             shell=True,
             capture_output=True,
             stdin=subprocess.DEVNULL,

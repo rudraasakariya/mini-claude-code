@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from pathlib import Path
 
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -32,3 +33,7 @@ class AzureSettings(BaseSettings):
     azure_base_url: str
     azure_deployment: str
     azure_api_key: SecretStr
+    
+@dataclass(frozen=True)
+class WorkSpaceSettings:
+    root_path: Path = field(default_factory=lambda: Path.cwd().resolve())

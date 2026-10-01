@@ -8,6 +8,7 @@ from config.constants import ToolMessages
 from mcp_server.errors import ToolError
 from mcp_server.project_files import list_project_files
 from mcp_server.schemas import ToolSpecification
+from mcp_server.workspace import resolve_in_workspace
 
 
 class GrepArgs(BaseModel):
@@ -37,6 +38,7 @@ def grep(
     path: str = ".",
     include: str | None = None,
     *,
+    root_path: Path,
     max_results: int,
 ) -> str:
     try:
@@ -44,7 +46,7 @@ def grep(
     except re.error as e:
         raise ToolError(ToolMessages.INVALID_REGEX.format(error=e)) from e
 
-    root = Path(path)
+    root = resolve_in_workspace(path, root_path)
     if not root.exists():
         raise ToolError(ToolMessages.PATH_NOT_FOUND.format(path=path))
 

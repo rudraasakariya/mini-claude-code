@@ -6,10 +6,13 @@ from agent.state import ToolName
 from config.constants import ToolMessages
 from mcp_server.errors import ToolError
 from mcp_server.schemas import ToolSpecification
+from mcp_server.workspace import resolve_in_workspace
 
 
 class ReadArgs(BaseModel):
-    file_path: str = Field(description="Path of the file to read, relative to the project root.")
+    file_path: str = Field(
+        description="Path of the file to read, relative to the project root."
+    )
     start_line: int = Field(description="First line to read. Lines start at 1.")
     end_line: int = Field(description="Last line to read, inclusive.")
 
@@ -26,8 +29,10 @@ READ_SPEC = ToolSpecification(
 )
 
 
-def read_file(file_path: str, start_line: int, end_line: int, *, max_lines: int) -> str:
-    path = Path(file_path)
+def read_file(
+    file_path: str, start_line: int, end_line: int, *, root_path: Path, max_lines: int
+) -> str:
+    path = resolve_in_workspace(file_path, root_path)
     if not path.is_file():
         raise ToolError(ToolMessages.NOT_A_FILE.format(path=file_path))
 

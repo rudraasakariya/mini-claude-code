@@ -24,7 +24,12 @@ from agent.state import (
     ToolCallTurn,
     ToolName,
 )
-from config.settings import BudgetSettings, LoopSettings, ToolSettings
+from config.settings import (
+    BudgetSettings,
+    LoopSettings,
+    ToolSettings,
+    WorkSpaceSettings,
+)
 from router.azure_client import to_azure_tool_definition
 
 
@@ -90,15 +95,19 @@ def call_model(
 
     for turn in state.conversation:
         if turn.reasoning is not None:
-            input_items.append({  # type: ignore[arg-type]
-                "type": "reasoning",
-                **turn.reasoning.__dict__,
-            })
-            
+            input_items.append(
+                {  # type: ignore[arg-type]
+                    "type": "reasoning",
+                    **turn.reasoning.__dict__,
+                }
+            )
+
         match turn:
             case TextTurn(text=text, phase=phase):
                 input_items.append(to_assistant_input(Message(text=text, phase=phase)))
-            case ToolCallTurn(action=action, observation=observation, preamble=preamble):
+            case ToolCallTurn(
+                action=action, observation=observation, preamble=preamble
+            ):
                 if preamble is not None:
                     input_items.append(to_assistant_input(preamble))
                 input_items.append(
@@ -179,6 +188,7 @@ def run_agent_loop(
     loop: LoopSettings,
     budget: BudgetSettings,
     tool_settings: ToolSettings,
+    workspace_settings: WorkSpaceSettings,
 ) -> State:
     while True:
         stop_reason = check_stop_conditions(state, loop, budget)
@@ -190,7 +200,9 @@ def run_agent_loop(
 
         match result:
             case Action():
-                observation = execute_action(result, tool_settings)
+                observation = execute_action(
+                    result, tool_settings, root_path=workspace_settings.root_path
+                )
                 state.conversation.append(
                     ToolCallTurn(
                         action=result,

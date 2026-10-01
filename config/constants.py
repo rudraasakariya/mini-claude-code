@@ -17,6 +17,10 @@ class ToolMessages:
     NOT_A_FILE: Final[str] = (
         "The path {path} is not a valid file. Use glob or grep to search for the right path."
     )
+    PATH_OUTSIDE_WORKSPACE: Final[str] = (
+        "The path {path} is outside the project root {root}. "
+        "Only paths inside the project root can be used."
+    )
     INVALID_LINE_RANGE: Final[str] = (
         "Invalid line range: start_line must be at least 1 "
         "and end_line must be at least start_line."

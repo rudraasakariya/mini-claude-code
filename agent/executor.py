@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from pathlib import Path
 
 from pydantic import ValidationError
 
@@ -22,12 +23,12 @@ TOOLS: dict[ToolName, tuple[ToolSpecification, Callable[..., str]]] = {
 }
 
 
-def execute_action(action: Action, settings: ToolSettings) -> str:
+def execute_action(action: Action, settings: ToolSettings, root_path: Path) -> str:
     entry = TOOLS.get(action.tool)
     if entry is None:
         return ExecutorMessages.TOOL_NOT_AVAILABLE.format(tool=action.tool.value)
 
-    spec, tool_func = entry
+    specification, tool_function = entry
 
     limits = {
         ToolName.GREP: {"max_results": settings.max_grep_results},
@@ -37,7 +38,11 @@ def execute_action(action: Action, settings: ToolSettings) -> str:
     }
 
     try:
-        validated_args = spec.args(**action.arguments)
-        return tool_func(**validated_args.model_dump(), **limits.get(action.tool, {}))
+        validated_args = specification.args(**action.arguments)
+        return tool_function(
+            **validated_args.model_dump(),
+            **limits.get(action.tool, {}),
+            root_path=root_path,
+        )
     except (ValidationError, ToolError) as e:
         return f"{ExecutorMessages.ERROR_PREFIX}{e}"

@@ -7,6 +7,7 @@ from agent.state import ToolName
 from config.constants import ToolMessages
 from mcp_server.errors import ToolError
 from mcp_server.schemas import ToolSpecification
+from mcp_server.workspace import resolve_in_workspace
 
 
 class EditArgs(BaseModel):
@@ -28,10 +29,10 @@ EDIT_SPEC = ToolSpecification(
 )
 
 
-def edit_file(file_path: str, old_string: str, new_string: str) -> str:
+def edit_file(file_path: str, old_string: str, new_string: str, *, root_path: Path) -> str:
     if old_string == new_string:
         raise ToolError(ToolMessages.EDIT_SAME_STRING)
-    file = Path(file_path)
+    file = resolve_in_workspace(file_path, root_path)
     if not file.is_file():
         raise ToolError(ToolMessages.NOT_A_FILE.format(path=file_path))
     if not old_string:

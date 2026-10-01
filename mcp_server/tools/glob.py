@@ -7,6 +7,7 @@ from config.constants import ToolMessages
 from mcp_server.errors import ToolError
 from mcp_server.project_files import list_project_files
 from mcp_server.schemas import ToolSpecification
+from mcp_server.workspace import resolve_in_workspace
 
 
 class GlobArgs(BaseModel):
@@ -26,8 +27,8 @@ GLOB_SPEC = ToolSpecification(
 )
 
 
-def glob(pattern: str, path: str = ".", *, max_results: int) -> str:
-    root = Path(path)
+def glob(pattern: str, path: str = ".", *, root_path: Path, max_results: int) -> str:
+    root = resolve_in_workspace(path, root_path)
     if not root.exists():
         raise ToolError(ToolMessages.PATH_NOT_FOUND.format(path=path))
 
