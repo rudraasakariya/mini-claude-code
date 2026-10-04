@@ -76,3 +76,10 @@ class PricingSettings:
         input=0.20, cached_input=0.02, cache_write=0.25, output=0.75
     )
     tokens_per_price_unit: int = 1_000_000
+
+
+@dataclass(frozen=True)
+class PolicySettings:
+    # found next to this file, not in the workspace, so it works from any
+    # launch folder (e.g. /testbed) and sits outside what the agent may edit
+    path: Path = field(default_factory=lambda: Path(__file__).parent / "policy.json")

@@ -7,6 +7,8 @@ from pydantic import ValidationError
 from agent.state import Action, InvalidToolCall, ToolName
 from config.constants import ExecutorMessages, LogMessages
 from config.settings import ToolSettings
+from hooks.policy import Policy
+from hooks.pre_tool import PermissionDecision, pre_tool_decision
 from mcp_server.errors import ToolError
 from mcp_server.schemas import ToolSpecification
 from mcp_server.tools.edit import EDIT_TOOL_SPECIFICATION, edit_file
@@ -28,7 +30,10 @@ TOOLS: dict[ToolName, tuple[ToolSpecification, Callable[..., str]]] = {
 
 
 def execute_action(
-    action: Action | InvalidToolCall, tool_settings: ToolSettings, root_path: Path
+    action: Action | InvalidToolCall,
+    tool_settings: ToolSettings,
+    root_path: Path,
+    policy: Policy,
 ) -> str:
     if isinstance(action, InvalidToolCall):
         available = ", ".join(tool.value for tool in TOOLS)
@@ -36,6 +41,14 @@ def execute_action(
             tool=action.name, available=available
         )
         return f"{ExecutorMessages.ERROR_PREFIX}{message}"
+
+    decision = pre_tool_decision(policy, action)
+    if decision.decision is not PermissionDecision.ALLOW:
+        logger.warning(
+            LogMessages.TOOL_BLOCKED,
+            extra={"tool": action.tool.value, "rule": decision.rule},
+        )
+        return f"{ExecutorMessages.ERROR_PREFIX}{ExecutorMessages.TOOL_BLOCKED.format(tool=action.tool.value, rule=decision.rule)}"
 
     # parse_response only builds an Action for a tool in TOOLS
     specification, tool_function = TOOLS[action.tool]

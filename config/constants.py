@@ -58,6 +58,7 @@ class ExecutorMessages:
         "and the arguments must be a JSON object."
     )
     TOOL_FAILED: Final[str] = "Tool {tool} failed with error: {error}"
+    TOOL_BLOCKED: Final[str] = "Tool {tool} was blocked by policy rule: {rule}"
 
 
 class FileListing:
@@ -89,3 +90,24 @@ class LogFields:
 
 class LogMessages:
     TOOL_FAILED: Final[str] = "Tool failed with an unexpected exception."
+    TOOL_BLOCKED: Final[str] = "Tool call blocked by policy rule."
+
+
+class PolicyMessages:
+    INVALID_RULE: Final[str] = (
+        "Invalid policy rule {rule!r}. Rules look like tool(pattern), "
+        "e.g. run(git push *)."
+    )
+    UNKNOWN_TOOL: Final[str] = (
+        "Invalid policy rule {rule!r}: unknown tool {tool!r}. Known tools: {known}."
+    )
+
+
+class PolicyFileMessages:
+    NOT_FOUND: Final[str] = "Policy file not found: {path}"
+    INVALID: Final[str] = "Policy file {path} is invalid: {error}"
+
+
+class PolicyFormat:
+    # tool name, then the pattern inside one pair of brackets
+    RULE_REGEX: Final[str] = r"(\w+)\((.*)\)"

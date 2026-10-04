@@ -1,0 +1,12 @@
+{
+  "deny": [
+    "run(rm -rf *)",
+    "run(git push *)",
+    "run(git reset --hard *)",
+    "run(curl *)",
+    "run(wget *)"
+  ],
+  "ask": [
+    "run(pip install *)"
+  ]
+}

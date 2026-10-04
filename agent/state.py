@@ -12,6 +12,7 @@ class LoopState(Enum):
     FINAL_ANSWER_GIVEN = "final_answer_given"
     API_ERROR = "api_error"
 
+
 class ToolName(Enum):
     GREP = "grep"
     GLOB = "glob"
@@ -23,14 +24,17 @@ class ToolName(Enum):
     FIND_TESTS_FOR = "find_tests_for"
     PATH_BETWEEN = "path_between"
 
+
 class MessagePhase(Enum):
     COMMENTARY = "commentary"
     FINAL_ANSWER = "final_answer"
+
 
 @dataclass
 class Message:
     text: str
     phase: MessagePhase | None = None
+
 
 @dataclass
 class Reasoning:
@@ -39,17 +43,20 @@ class Reasoning:
     content: list[str] = field(default_factory=list)
     encrypted_content: str | None = None
 
+
 @dataclass
 class Action:
     tool: ToolName
     call_id: str
     arguments: dict[str, Any] = field(default_factory=dict)
-    
+
+
 @dataclass
 class InvalidToolCall:
     name: str
     call_id: str
     arguments: str
+
 
 @dataclass
 class ToolCallTurn:
@@ -58,13 +65,16 @@ class ToolCallTurn:
     reasoning: Reasoning | None = None
     preamble: Message | None = None
 
+
 @dataclass
 class TextTurn:
     text: str
     phase: MessagePhase | None = None
     reasoning: Reasoning | None = None
 
+
 Turn = ToolCallTurn | TextTurn
+
 
 @dataclass
 class State:

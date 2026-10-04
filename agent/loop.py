@@ -33,6 +33,7 @@ from config.settings import (
     ToolSettings,
     WorkSpaceSettings,
 )
+from hooks.policy import Policy
 from router.azure_client import to_azure_tool_definition
 from router.pricing import compute_cost
 
@@ -243,6 +244,7 @@ def run_agent_loop(
     tool_settings: ToolSettings,
     workspace_settings: WorkSpaceSettings,
     pricing: PricingSettings,
+    policy: Policy,
 ) -> State:
     while True:
         stop_reason = check_stop_conditions(state, loop, budget)
@@ -266,7 +268,10 @@ def run_agent_loop(
         match result:
             case Action() | InvalidToolCall():
                 observation = execute_action(
-                    result, tool_settings, root_path=workspace_settings.root_path
+                    result,
+                    tool_settings,
+                    root_path=workspace_settings.root_path,
+                    policy=policy,
                 )
                 state.conversation.append(
                     ToolCallTurn(
