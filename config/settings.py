@@ -10,7 +10,7 @@ from config.constants import EnvConfig
 
 @dataclass(frozen=True)
 class LoopSettings:
-    max_steps: int = 30
+    max_steps: int = 100
     last_action_repeat_limit: int = 3
     max_consecutive_invalid_calls: int = 5
 
