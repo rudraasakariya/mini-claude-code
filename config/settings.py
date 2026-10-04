@@ -31,7 +31,12 @@ class ToolSettings:
 
 
 class AzureSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=EnvConfig.ENV_FILE, frozen=True)
+    # .env belongs to the harness, so find it next to this code rather than in
+    # the folder the agent was launched from (e.g. /testbed)
+    model_config = SettingsConfigDict(
+        env_file=Path(__file__).resolve().parent.parent / EnvConfig.ENV_FILE,
+        frozen=True,
+    )
 
     azure_base_url: str
     azure_deployment: str
