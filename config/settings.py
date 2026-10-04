@@ -17,8 +17,8 @@ class LoopSettings:
 
 @dataclass(frozen=True)
 class BudgetSettings:
-    max_tokens: int = 100000
-    max_spend: float = 1.00
+    max_tokens: int = 1_000_000
+    max_spend: float = 5.00
 
 
 @dataclass(frozen=True)
