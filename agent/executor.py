@@ -28,7 +28,7 @@ TOOLS: dict[ToolName, tuple[ToolSpecification, Callable[..., str]]] = {
 
 
 def execute_action(
-    action: Action | InvalidToolCall, settings: ToolSettings, root_path: Path
+    action: Action | InvalidToolCall, tool_settings: ToolSettings, root_path: Path
 ) -> str:
     if isinstance(action, InvalidToolCall):
         available = ", ".join(tool.value for tool in TOOLS)
@@ -41,10 +41,13 @@ def execute_action(
     specification, tool_function = TOOLS[action.tool]
 
     limits = {
-        ToolName.GREP: {"max_results": settings.max_grep_results},
-        ToolName.READ: {"max_lines": settings.max_read_lines},
-        ToolName.GLOB: {"max_results": settings.max_glob_results},
-        ToolName.RUN: {"max_output_chars": settings.max_run_output_chars},
+        ToolName.GREP: {"max_results": tool_settings.max_grep_results},
+        ToolName.READ: {"max_lines": tool_settings.max_read_lines},
+        ToolName.GLOB: {"max_results": tool_settings.max_glob_results},
+        ToolName.RUN: {
+            "max_output_chars": tool_settings.max_run_output_chars,
+            "max_timeout_seconds": tool_settings.max_timeout_seconds,
+        },
     }
 
     try:

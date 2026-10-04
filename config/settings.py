@@ -27,6 +27,7 @@ class ToolSettings:
     max_read_lines: int = 200
     max_glob_results: int = 100
     max_run_output_chars: int = 10000
+    max_timeout_seconds: int = 600
 
 
 class AzureSettings(BaseSettings):

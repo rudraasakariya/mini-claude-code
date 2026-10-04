@@ -11,7 +11,9 @@ from mcp_server.schemas import ToolSpecification
 
 class RunArgs(BaseModel):
     command: str = Field(description="The shell command to run.")
-    timeout: int = Field(description="The maximum time in seconds to allow the command to run.")
+    timeout: int = Field(
+        description="The maximum time in seconds to allow the command to run. It will be terminated if it exceeds 10 minutes / 600 seconds."
+    )
     description: str = Field(
         default="",
         description="A short note for the user about what the command does. It is not executed. Always provide it.",
@@ -36,10 +38,21 @@ def truncate_middle(text: str, max_length: int) -> str:
         return text
     half = max_length // 2
     omitted = len(text) - 2 * half
-    return text[:half] + ToolMessages.OUTPUT_OMITTED.format(omitted=omitted) + text[-half:]
+    return (
+        text[:half] + ToolMessages.OUTPUT_OMITTED.format(omitted=omitted) + text[-half:]
+    )
 
 
-def run(command: str, timeout: int, description: str = "", *, root_path: Path, max_output_chars: int) -> str:
+def run(
+    command: str,
+    timeout: int,
+    description: str = "",
+    *,
+    root_path: Path,
+    max_output_chars: int,
+    max_timeout_seconds: int,
+) -> str:
+    capped_timeout = min(timeout, max_timeout_seconds)
     try:
         result = subprocess.run(
             command,
@@ -48,11 +61,11 @@ def run(command: str, timeout: int, description: str = "", *, root_path: Path, m
             capture_output=True,
             stdin=subprocess.DEVNULL,
             text=True,
-            timeout=timeout,
+            timeout=capped_timeout,
             check=False,
         )
     except subprocess.TimeoutExpired as e:
-        raise ToolError(ToolMessages.COMMAND_TIMEOUT.format(timeout=timeout)) from e
+        raise ToolError(ToolMessages.COMMAND_TIMEOUT.format(timeout=capped_timeout)) from e
 
     output = ToolMessages.COMMAND_OUTPUT.format(
         exit_code=result.returncode, stdout=result.stdout, stderr=result.stderr
