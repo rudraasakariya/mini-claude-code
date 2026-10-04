@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -46,3 +47,8 @@ class OpenAISettings:
 @dataclass(frozen=True)
 class WorkSpaceSettings:
     root_path: Path = field(default_factory=lambda: Path.cwd().resolve())
+
+
+@dataclass(frozen=True)
+class LoggingSettings:
+    level: int = logging.INFO

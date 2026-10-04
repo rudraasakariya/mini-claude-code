@@ -72,3 +72,12 @@ class FileListing:
 
 class EnvConfig:
     ENV_FILE: Final[str] = ".env"
+
+
+class LogFields:
+    TIMESTAMP: Final[str] = "timestamp"
+    LEVEL: Final[str] = "level"
+    LOGGER: Final[str] = "logger"
+    MESSAGE: Final[str] = "message"
+    EXCEPTION: Final[str] = "exception"
+
