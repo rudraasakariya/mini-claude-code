@@ -38,7 +38,7 @@ from agent.state import (
     UserTurn,
 )
 from config.settings import BudgetSettings, LoopSettings, RunConfig
-from hooks.policy import Policy
+from hooks.guardrails import Guardrails
 from router.azure_client import to_azure_tool_definition
 from router.pricing import compute_cost
 
@@ -259,7 +259,7 @@ def run_agent_loop(
     model: str,
     state: State,
     config: RunConfig,
-    policy: Policy,
+    guardrails: Guardrails,
     on_event: EventHandler = ignore_event,
 ) -> State:
     state.stop_reason = None  # a new prompt starts a new run
@@ -290,7 +290,7 @@ def run_agent_loop(
                     result,
                     config.tools,
                     root_path=config.workspace.root_path,
-                    policy=policy,
+                    guardrails=guardrails,
                     protected_settings=config.protected_paths,
                 )
                 on_event(ToolCallFinished(action=result, observation=observation))

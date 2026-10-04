@@ -26,7 +26,7 @@ from agent.state import (
 )
 from config.constants import LogMessages, UiMessages
 from config.settings import RunConfig, UiSettings
-from hooks.policy import Policy
+from hooks.guardrails import Guardrails
 
 logger = logging.getLogger(__name__)
 
@@ -50,14 +50,14 @@ class AgentApp(App[None]):
         client: OpenAI,
         model: str,
         config: RunConfig,
-        policy: Policy,
+        guardrails: Guardrails,
         ui_settings: UiSettings,
     ) -> None:
         super().__init__()
         self.client = client
         self.model = model
         self.config = config
-        self.policy = policy
+        self.guardrails = guardrails
         self.ui_settings = ui_settings
         self.state = State()  # one conversation for the whole session
 
@@ -96,7 +96,7 @@ class AgentApp(App[None]):
                 self.model,
                 self.state,
                 self.config,
-                self.policy,
+                self.guardrails,
                 # events come from this thread; hand each one to the UI thread
                 on_event=lambda event: self.call_from_thread(self.show_event, event),
             )

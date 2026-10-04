@@ -136,3 +136,7 @@ class UiMessages:
     STOPPED: Final[str] = "Stopped: {reason}"
     STATUS: Final[str] = "{tokens:,} tokens · ${cost:.4f} · {folder}"
     RUN_CRASHED: Final[str] = "The run crashed: {error}. Details are in {log_file}."
+
+
+class SecretNames:
+    AZURE_API_KEY: Final[str] = "azure_api_key"

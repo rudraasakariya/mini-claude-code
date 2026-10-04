@@ -4,7 +4,7 @@ from openai import OpenAI
 
 from agent.loop import run_agent_loop
 from agent.state import LoopState, State, TextTurn, UserTurn
-from config.constants import CliMessages
+from config.constants import CliMessages, SecretNames
 from config.logging_setup import configure_logging
 from config.settings import (
     AzureSettings,
@@ -13,7 +13,8 @@ from config.settings import (
     RunConfig,
     UiSettings,
 )
-from hooks.policy import Policy, load_policy
+from hooks.guardrails import Guardrails
+from hooks.policy import load_policy
 from router.azure_client import make_client
 from ui.app import AgentApp
 
@@ -24,11 +25,11 @@ def run_prompt(
     model: str,
     state: State,
     config: RunConfig,
-    policy: Policy,
+    guardrails: Guardrails,
 ) -> None:
     """Add the user's prompt to the history, run the agent, and print the result."""
     state.conversation.append(UserTurn(prompt))
-    run_agent_loop(client, model, state, config, policy)
+    run_agent_loop(client, model, state, config, guardrails)
 
     last_turn = state.conversation[-1]
     if state.stop_reason is LoopState.FINAL_ANSWER_GIVEN and isinstance(
@@ -56,13 +57,18 @@ def main() -> None:
     # 4. pydantic-settings fills the fields from .env; type checkers can't see that
     azure = AzureSettings()  # type: ignore[call-arg]
     client = make_client(azure, OpenAISettings())
+    # 5. what the hooks need: the rules, plus secret values to hide from the model
+    guardrails = Guardrails(
+        policy=policy,
+        secrets={SecretNames.AZURE_API_KEY: azure.azure_api_key.get_secret_value()},
+    )
 
     if interactive:
-        AgentApp(client, azure.azure_deployment, config, policy, ui_settings).run()
+        AgentApp(client, azure.azure_deployment, config, guardrails, ui_settings).run()
         return
 
     # print mode: one prompt, then exit
-    run_prompt(args.prompt, client, azure.azure_deployment, State(), config, policy)
+    run_prompt(args.prompt, client, azure.azure_deployment, State(), config, guardrails)
 
 
 if __name__ == "__main__":
