@@ -1,10 +1,11 @@
+import logging
 from collections.abc import Callable
 from pathlib import Path
 
 from pydantic import ValidationError
 
 from agent.state import Action, InvalidToolCall, ToolName
-from config.constants import ExecutorMessages
+from config.constants import ExecutorMessages, LogMessages
 from config.settings import ToolSettings
 from mcp_server.errors import ToolError
 from mcp_server.schemas import ToolSpecification
@@ -13,6 +14,9 @@ from mcp_server.tools.glob import GLOB_TOOL_SPECIFICATION, glob
 from mcp_server.tools.grep import GREP_TOOL_SPECIFICATION, grep
 from mcp_server.tools.read import READ_TOOL_SPECIFICATION, read_file
 from mcp_server.tools.run import RUN_TOOL_SPECIFICATION, run
+
+logger = logging.getLogger(__name__)
+
 
 TOOLS: dict[ToolName, tuple[ToolSpecification, Callable[..., str]]] = {
     ToolName.READ: (READ_TOOL_SPECIFICATION, read_file),
@@ -52,3 +56,9 @@ def execute_action(
         )
     except (ValidationError, ToolError) as e:
         return f"{ExecutorMessages.ERROR_PREFIX}{e}"
+    except Exception as e:
+        logger.exception(
+            LogMessages.TOOL_FAILED,
+            extra={"tool": action.tool.value, "call_id": action.call_id},
+        )
+        return f"{ExecutorMessages.ERROR_PREFIX}{ExecutorMessages.TOOL_FAILED.format(tool=action.tool.value, error=type(e).__name__)}"

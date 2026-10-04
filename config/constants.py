@@ -17,6 +17,10 @@ class ToolMessages:
     NOT_A_FILE: Final[str] = (
         "The path {path} is not a valid file. Use glob or grep to search for the right path."
     )
+    BINARY_FILE: Final[str] = (
+        "The file {path} is binary and cannot be read as text. "
+        "Use run with a command like file or xxd to inspect it."
+    )
     PATH_OUTSIDE_WORKSPACE: Final[str] = (
         "The path {path} is outside the project root {root}. "
         "Only paths inside the project root can be used."
@@ -53,6 +57,7 @@ class ExecutorMessages:
         "Invalid call to {tool}. The tool must be one of: {available}, "
         "and the arguments must be a JSON object."
     )
+    TOOL_FAILED: Final[str] = "Tool {tool} failed with error: {error}"
 
 
 class FileListing:
@@ -81,3 +86,6 @@ class LogFields:
     MESSAGE: Final[str] = "message"
     EXCEPTION: Final[str] = "exception"
 
+
+class LogMessages:
+    TOOL_FAILED: Final[str] = "Tool failed with an unexpected exception."

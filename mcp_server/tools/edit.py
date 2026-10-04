@@ -38,7 +38,10 @@ def edit_file(file_path: str, old_string: str, new_string: str, *, root_path: Pa
     if not old_string:
         raise ToolError(ToolMessages.EDIT_EMPTY_OLD_STRING)
 
-    content = file.read_text()
+    try:
+        content = file.read_text()
+    except UnicodeDecodeError as e:
+        raise ToolError(ToolMessages.BINARY_FILE.format(path=file_path)) from e
     count = content.count(old_string)
     if count == 0:
         raise ToolError(ToolMessages.EDIT_NOT_FOUND.format(path=file_path))

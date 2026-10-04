@@ -39,7 +39,10 @@ def read_file(
     if start_line < 1 or end_line < start_line:
         raise ToolError(ToolMessages.INVALID_LINE_RANGE)
 
-    lines = path.read_text().splitlines()[start_line - 1 : end_line]
+    try:
+        lines = path.read_text().splitlines()[start_line - 1 : end_line]
+    except UnicodeDecodeError as e:
+        raise ToolError(ToolMessages.BINARY_FILE.format(path=file_path)) from e
     numbered = [
         f"{number}: {line}" for number, line in enumerate(lines, start=start_line)
     ]
