@@ -32,9 +32,16 @@ class JsonFormatter(logging.Formatter):
 
 
 def configure_logging(settings: LoggingSettings) -> None:
-    """Send all logs to stderr as JSON lines. Call once at startup."""
-    handler = logging.StreamHandler(sys.stderr)
+    """Send all logs to stderr (or a file) as JSON lines. Call once at startup."""
+    handler: logging.Handler
+    if settings.log_file is None:
+        handler = logging.StreamHandler(sys.stderr)
+    else:
+        settings.log_file.parent.mkdir(parents=True, exist_ok=True)
+        handler = logging.FileHandler(settings.log_file)
     handler.setFormatter(JsonFormatter())
     root = logging.getLogger()
     root.handlers = [handler]
     root.setLevel(settings.level)
+    for name in settings.quiet_loggers:
+        logging.getLogger(name).setLevel(logging.WARNING)

@@ -2,3 +2,4 @@ documentation/
 __pycache__/
 .env
 .venv/
+logs/

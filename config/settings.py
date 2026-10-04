@@ -53,6 +53,10 @@ class WorkSpaceSettings:
 @dataclass(frozen=True)
 class LoggingSettings:
     level: int = logging.INFO
+    # None sends logs to stderr; the TUI sets a file so logs don't draw over it
+    log_file: Path | None = None
+    # libraries that log every HTTP request at INFO; only their warnings are kept
+    quiet_loggers: tuple[str, ...] = ("httpx", "httpx2", "httpcore")
 
 
 @dataclass(frozen=True)
