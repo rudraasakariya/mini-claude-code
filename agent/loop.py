@@ -13,6 +13,15 @@ from openai.types.responses import (
     ResponseReasoningItem,
 )
 
+from agent.events import (
+    AssistantText,
+    EventHandler,
+    ModelCallStarted,
+    RunFinished,
+    ToolCallFinished,
+    ToolCallStarted,
+    ignore_event,
+)
 from agent.executor import TOOLS, execute_action
 from agent.state import (
     Action,
@@ -251,6 +260,7 @@ def run_agent_loop(
     state: State,
     config: RunConfig,
     policy: Policy,
+    on_event: EventHandler = ignore_event,
 ) -> State:
     state.stop_reason = None  # a new prompt starts a new run
     while True:
@@ -259,6 +269,7 @@ def run_agent_loop(
             state.stop_reason = stop_reason
             break
 
+        on_event(ModelCallStarted())
         try:
             response = call_model(client, model, state)
         except APIError:
@@ -274,6 +285,7 @@ def run_agent_loop(
 
         match result:
             case Action() | InvalidToolCall():
+                on_event(ToolCallStarted(action=result, preamble=preamble))
                 observation = execute_action(
                     result,
                     config.tools,
@@ -281,6 +293,7 @@ def run_agent_loop(
                     policy=policy,
                     protected_settings=config.protected_paths,
                 )
+                on_event(ToolCallFinished(action=result, observation=observation))
                 state.conversation.append(
                     ToolCallTurn(
                         action=result,
@@ -290,8 +303,17 @@ def run_agent_loop(
                     )
                 )
             case Message(text=text, phase=phase):
+                on_event(AssistantText(message=result))
                 state.conversation.append(
                     TextTurn(text=text, phase=phase, reasoning=reasoning)
                 )
 
+    if state.stop_reason is not None:
+        on_event(
+            RunFinished(
+                stop_reason=state.stop_reason,
+                token_count=state.token_count,
+                spend=state.spend,
+            )
+        )
     return state
