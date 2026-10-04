@@ -52,3 +52,26 @@ class WorkSpaceSettings:
 @dataclass(frozen=True)
 class LoggingSettings:
     level: int = logging.INFO
+
+
+@dataclass(frozen=True)
+class PriceTier:
+    # USD per million tokens
+    input: float
+    cached_input: float
+    cache_write: float
+    output: float
+
+
+@dataclass(frozen=True)
+class PricingSettings:
+    # gpt-6-luna, Azure Global Standard; a request above the threshold is
+    # billed entirely at long-context prices
+    long_context_threshold_tokens: int = 272_000
+    short_context: PriceTier = PriceTier(
+        input=0.10, cached_input=0.01, cache_write=0.125, output=0.50
+    )
+    long_context: PriceTier = PriceTier(
+        input=0.20, cached_input=0.02, cache_write=0.25, output=0.75
+    )
+    tokens_per_price_unit: int = 1_000_000

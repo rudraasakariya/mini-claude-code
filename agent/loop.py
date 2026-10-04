@@ -29,10 +29,12 @@ from agent.state import (
 from config.settings import (
     BudgetSettings,
     LoopSettings,
+    PricingSettings,
     ToolSettings,
     WorkSpaceSettings,
 )
 from router.azure_client import to_azure_tool_definition
+from router.pricing import compute_cost
 
 
 def check_stop_conditions(
@@ -240,6 +242,7 @@ def run_agent_loop(
     budget: BudgetSettings,
     tool_settings: ToolSettings,
     workspace_settings: WorkSpaceSettings,
+    pricing: PricingSettings,
 ) -> State:
     while True:
         stop_reason = check_stop_conditions(state, loop, budget)
@@ -252,6 +255,11 @@ def run_agent_loop(
         except APIError:
             state.stop_reason = LoopState.API_ERROR
             break
+
+        # count what this call used before anything else can fail
+        if response.usage is not None:
+            state.token_count += response.usage.total_tokens
+            state.spend += compute_cost(response.usage, pricing)
 
         result, reasoning, preamble = parse_response(response)
 
@@ -272,9 +280,5 @@ def run_agent_loop(
                 state.conversation.append(
                     TextTurn(text=text, phase=phase, reasoning=reasoning)
                 )
-
-        # Update token count and spend (fake values for now)
-        state.token_count += 10  # fake increment
-        state.spend += 0.01  # fake increment
 
     return state
