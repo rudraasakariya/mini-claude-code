@@ -91,6 +91,7 @@ class LogFields:
 class LogMessages:
     TOOL_FAILED: Final[str] = "Tool failed with an unexpected exception."
     TOOL_BLOCKED: Final[str] = "Tool call blocked by policy rule."
+    SECRET_MASKED: Final[str] = "Secrets masked in tool output."
     RUN_CRASHED: Final[str] = "Agent run crashed."
 
 
@@ -140,3 +141,12 @@ class UiMessages:
 
 class SecretNames:
     AZURE_API_KEY: Final[str] = "azure_api_key"
+
+
+class SecretPatterns:
+    PATTERNS: Final[dict[str, str]] = {
+        "private_key": r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----",
+        "openai_style_key": r"sk-[A-Za-z0-9_-]{20,}",
+        "aws_access_key": r"AKIA[0-9A-Z]{16}",
+    }
+    REDACTED: Final[str] = "[REDACTED: {name}]"

@@ -8,6 +8,7 @@ from agent.state import Action, InvalidToolCall, ToolName
 from config.constants import ExecutorMessages, LogMessages
 from config.settings import ProtectedPathSettings, ToolSettings
 from hooks.guardrails import Guardrails
+from hooks.post_tool import post_tool
 from hooks.pre_tool import PermissionDecision, pre_tool_decision
 from mcp_server.errors import ToolError
 from mcp_server.schemas import ToolSpecification
@@ -68,11 +69,12 @@ def execute_action(
 
     try:
         validated_args = specification.args(**action.arguments)
-        return tool_function(
+        observation = tool_function(
             **validated_args.model_dump(),
             **limits.get(action.tool, {}),
             root_path=root_path,
         )
+        return post_tool(observation, guardrails)
     except (ValidationError, ToolError) as e:
         return f"{ExecutorMessages.ERROR_PREFIX}{e}"
     except Exception as e:
