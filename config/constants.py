@@ -91,6 +91,7 @@ class LogFields:
 class LogMessages:
     TOOL_FAILED: Final[str] = "Tool failed with an unexpected exception."
     TOOL_BLOCKED: Final[str] = "Tool call blocked by policy rule."
+    RUN_CRASHED: Final[str] = "Agent run crashed."
 
 
 class PolicyMessages:
@@ -116,3 +117,22 @@ class PolicyFormat:
 class ProtectedPathRules:
     HARNESS: Final[str] = "protected path: harness code"
     PROTECTED_DIR: Final[str] = "protected path: {name} folder"
+
+
+class CliMessages:
+    DESCRIPTION: Final[str] = "A mini coding agent."
+    PRINT_HELP: Final[str] = "Run one prompt, print the answer, and exit."
+    STOPPED: Final[str] = "[stopped: {reason}]"
+    SUMMARY: Final[str] = "[{tokens} tokens · ${cost:.4f}]"
+
+
+class UiMessages:
+    TITLE: Final[str] = "mini-claude"
+    INPUT_PLACEHOLDER: Final[str] = "Ask for a change, or type exit to quit"
+    EXIT_COMMAND: Final[str] = "exit"
+    TOOL_CALL: Final[str] = "⏺ {tool}  {arguments}"
+    RESULT_TITLE: Final[str] = "result · {lines} lines"
+    RESULT_CUT: Final[str] = "… {hidden} more lines"
+    STOPPED: Final[str] = "Stopped: {reason}"
+    STATUS: Final[str] = "{tokens:,} tokens · ${cost:.4f} · {folder}"
+    RUN_CRASHED: Final[str] = "The run crashed: {error}. Details are in {log_file}."

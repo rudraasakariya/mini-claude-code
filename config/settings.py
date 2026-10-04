@@ -60,6 +60,17 @@ class LoggingSettings:
 
 
 @dataclass(frozen=True)
+class UiSettings:
+    max_result_lines: int = 40  # longer tool results are cut in the display
+    max_argument_chars: int = 120  # tool-call lines show this much of the arguments
+    log_file: Path = field(
+        default_factory=lambda: (
+            Path(__file__).resolve().parent.parent / "logs" / "mini-claude.log"
+        )
+    )
+
+
+@dataclass(frozen=True)
 class PriceTier:
     # USD per million tokens
     input: float
