@@ -70,7 +70,7 @@ class UiSettings:
     max_argument_chars: int = 120  # tool-call lines show this much of the arguments
     log_file: Path = field(
         default_factory=lambda: (
-            Path(__file__).resolve().parent.parent / "logs" / "mini-claude.log"
+            Path(__file__).resolve().parent.parent / "logs" / "mclaude.log"
         )
     )
 

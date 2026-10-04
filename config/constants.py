@@ -127,7 +127,7 @@ class CliMessages:
 
 
 class UiMessages:
-    TITLE: Final[str] = "mini-claude"
+    TITLE: Final[str] = "mclaude"
     INPUT_PLACEHOLDER: Final[str] = "Ask for a change, or type exit to quit"
     EXIT_COMMAND: Final[str] = "exit"
     TOOL_CALL: Final[str] = "⏺ {tool}  {arguments}"
