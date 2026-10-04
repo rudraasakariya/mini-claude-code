@@ -25,15 +25,10 @@ from agent.state import (
     TextTurn,
     ToolCallTurn,
     ToolName,
+    Turn,
+    UserTurn,
 )
-from config.settings import (
-    BudgetSettings,
-    LoopSettings,
-    PricingSettings,
-    ProtectedPathSettings,
-    ToolSettings,
-    WorkSpaceSettings,
-)
+from config.settings import BudgetSettings, LoopSettings, RunConfig
 from hooks.policy import Policy
 from router.azure_client import to_azure_tool_definition
 from router.pricing import compute_cost
@@ -52,13 +47,24 @@ def check_stop_conditions(
             return LoopState.FINAL_ANSWER_GIVEN
         case TextTurn():
             pass  # commentary or no phase: the model isn't done; keep going
+        case UserTurn():
+            pass  # user input doesn't stop the loop; keep going
+
+    # step, repeat and invalid-call checks only look at the current prompt's
+    # turns, i.e. everything after the user's last message
+    turns_this_prompt: list[Turn] = []
+    for turn in reversed(state.conversation):
+        if isinstance(turn, UserTurn):
+            break
+        turns_this_prompt.append(turn)
+    turns_this_prompt.reverse()
 
     tool_call_turns = [
-        turn for turn in state.conversation if isinstance(turn, ToolCallTurn)
+        turn for turn in turns_this_prompt if isinstance(turn, ToolCallTurn)
     ]
 
     # every model call counts as a step, text replies included
-    if len(state.conversation) >= loop.max_steps:
+    if len(turns_this_prompt) >= loop.max_steps:
         return LoopState.STEP_LIMIT_HIT
 
     if state.token_count >= budget.max_tokens:
@@ -94,9 +100,12 @@ def check_stop_conditions(
 
 
 def build_input(state: State) -> ResponseInputParam:
-    input_items: ResponseInputParam = [{"role": "user", "content": state.task}]
+    input_items: ResponseInputParam = []
 
     for turn in state.conversation:
+        if isinstance(turn, UserTurn):
+            input_items.append({"role": "user", "content": turn.prompt})
+            continue
         if turn.reasoning is not None:
             input_items.append(
                 {
@@ -240,16 +249,12 @@ def run_agent_loop(
     client: OpenAI,
     model: str,
     state: State,
-    loop: LoopSettings,
-    budget: BudgetSettings,
-    tool_settings: ToolSettings,
-    workspace_settings: WorkSpaceSettings,
-    pricing: PricingSettings,
+    config: RunConfig,
     policy: Policy,
-    protected_settings: ProtectedPathSettings,
 ) -> State:
+    state.stop_reason = None  # a new prompt starts a new run
     while True:
-        stop_reason = check_stop_conditions(state, loop, budget)
+        stop_reason = check_stop_conditions(state, config.loop, config.budget)
         if stop_reason is not None:
             state.stop_reason = stop_reason
             break
@@ -263,7 +268,7 @@ def run_agent_loop(
         # count what this call used before anything else can fail
         if response.usage is not None:
             state.token_count += response.usage.total_tokens
-            state.spend += compute_cost(response.usage, pricing)
+            state.spend += compute_cost(response.usage, config.pricing)
 
         result, reasoning, preamble = parse_response(response)
 
@@ -271,10 +276,10 @@ def run_agent_loop(
             case Action() | InvalidToolCall():
                 observation = execute_action(
                     result,
-                    tool_settings,
-                    root_path=workspace_settings.root_path,
+                    config.tools,
+                    root_path=config.workspace.root_path,
                     policy=policy,
-                    protected_settings=protected_settings,
+                    protected_settings=config.protected_paths,
                 )
                 state.conversation.append(
                     ToolCallTurn(

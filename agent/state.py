@@ -58,6 +58,11 @@ class InvalidToolCall:
     arguments: str
 
 
+@dataclass(frozen=True)
+class UserTurn:
+    prompt: str
+
+
 @dataclass
 class ToolCallTurn:
     action: Action | InvalidToolCall
@@ -73,12 +78,11 @@ class TextTurn:
     reasoning: Reasoning | None = None
 
 
-Turn = ToolCallTurn | TextTurn
+Turn = ToolCallTurn | TextTurn | UserTurn
 
 
 @dataclass
 class State:
-    task: str
     conversation: list[Turn] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
     token_count: int = 0

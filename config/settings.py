@@ -93,3 +93,18 @@ class ProtectedPathSettings:
     )
     # folders that are never edited, wherever they appear
     protected_dir_names: tuple[str, ...] = (".git",)
+
+
+@dataclass(frozen=True)
+class RunConfig:
+    """Every settings group a run needs, built once at startup."""
+
+    loop: LoopSettings = field(default_factory=LoopSettings)
+    budget: BudgetSettings = field(default_factory=BudgetSettings)
+    tools: ToolSettings = field(default_factory=ToolSettings)
+    workspace: WorkSpaceSettings = field(default_factory=WorkSpaceSettings)
+    pricing: PricingSettings = field(default_factory=PricingSettings)
+    policy: PolicySettings = field(default_factory=PolicySettings)
+    protected_paths: ProtectedPathSettings = field(
+        default_factory=ProtectedPathSettings
+    )
