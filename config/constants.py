@@ -111,3 +111,8 @@ class PolicyFileMessages:
 class PolicyFormat:
     # tool name, then the pattern inside one pair of brackets
     RULE_REGEX: Final[str] = r"(\w+)\((.*)\)"
+
+
+class ProtectedPathRules:
+    HARNESS: Final[str] = "protected path: harness code"
+    PROTECTED_DIR: Final[str] = "protected path: {name} folder"

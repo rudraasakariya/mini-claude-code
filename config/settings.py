@@ -83,3 +83,13 @@ class PolicySettings:
     # found next to this file, not in the workspace, so it works from any
     # launch folder (e.g. /testbed) and sits outside what the agent may edit
     path: Path = field(default_factory=lambda: Path(__file__).parent / "policy.json")
+
+
+@dataclass(frozen=True)
+class ProtectedPathSettings:
+    # the harness's own folder (this file is <harness>/config/settings.py)
+    harness_root: Path = field(
+        default_factory=lambda: Path(__file__).resolve().parent.parent
+    )
+    # folders that are never edited, wherever they appear
+    protected_dir_names: tuple[str, ...] = (".git",)

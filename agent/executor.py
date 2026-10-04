@@ -6,7 +6,7 @@ from pydantic import ValidationError
 
 from agent.state import Action, InvalidToolCall, ToolName
 from config.constants import ExecutorMessages, LogMessages
-from config.settings import ToolSettings
+from config.settings import ProtectedPathSettings, ToolSettings
 from hooks.policy import Policy
 from hooks.pre_tool import PermissionDecision, pre_tool_decision
 from mcp_server.errors import ToolError
@@ -34,6 +34,7 @@ def execute_action(
     tool_settings: ToolSettings,
     root_path: Path,
     policy: Policy,
+    protected_settings: ProtectedPathSettings,
 ) -> str:
     if isinstance(action, InvalidToolCall):
         available = ", ".join(tool.value for tool in TOOLS)
@@ -42,7 +43,7 @@ def execute_action(
         )
         return f"{ExecutorMessages.ERROR_PREFIX}{message}"
 
-    decision = pre_tool_decision(policy, action)
+    decision = pre_tool_decision(policy, action, root_path, protected_settings)
     if decision.decision is not PermissionDecision.ALLOW:
         logger.warning(
             LogMessages.TOOL_BLOCKED,

@@ -30,6 +30,7 @@ from config.settings import (
     BudgetSettings,
     LoopSettings,
     PricingSettings,
+    ProtectedPathSettings,
     ToolSettings,
     WorkSpaceSettings,
 )
@@ -245,6 +246,7 @@ def run_agent_loop(
     workspace_settings: WorkSpaceSettings,
     pricing: PricingSettings,
     policy: Policy,
+    protected_settings: ProtectedPathSettings,
 ) -> State:
     while True:
         stop_reason = check_stop_conditions(state, loop, budget)
@@ -272,6 +274,7 @@ def run_agent_loop(
                     tool_settings,
                     root_path=workspace_settings.root_path,
                     policy=policy,
+                    protected_settings=protected_settings,
                 )
                 state.conversation.append(
                     ToolCallTurn(
