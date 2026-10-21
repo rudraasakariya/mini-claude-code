@@ -11,6 +11,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "pytest>=9.1.1",
     "ruff>=0.16.9",
 ]
 
@@ -38,3 +39,8 @@ include = [
     "trace*",
     "ui*",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# lets test files share a name in different folders without __init__.py files
+addopts = "--import-mode=importlib"
