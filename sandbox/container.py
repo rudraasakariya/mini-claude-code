@@ -1,0 +1,59 @@
+import logging
+from collections.abc import Iterator
+from contextlib import contextmanager
+
+from daytona import (
+    CreateSandboxFromImageParams,
+    Daytona,
+    DaytonaConfig,
+    DaytonaError,
+    Sandbox,
+)
+
+from config.constants import LogMessages
+from config.settings import DaytonaSettings, SweBenchSettings
+
+logger = logging.getLogger(__name__)
+
+
+def make_daytona(settings: DaytonaSettings) -> Daytona:
+    return Daytona(
+        DaytonaConfig(
+            api_key=settings.daytona_api_key.get_secret_value(),
+            api_url=settings.daytona_api_url,
+        )
+    )
+
+
+def task_image(instance_id: str, settings: SweBenchSettings) -> str:
+    """The official SWE-bench eval image for one task."""
+    instance = instance_id.replace(
+        settings.instance_separator, settings.image_separator
+    )
+    return settings.image_template.format(instance=instance).lower()
+
+
+@contextmanager
+def task_sandbox(
+    daytona: Daytona, instance_id: str, settings: SweBenchSettings
+) -> Iterator[Sandbox]:
+    """One sandbox for one task, with no network, deleted when the block ends."""
+    image = task_image(instance_id, settings)
+    logger.info(LogMessages.SANDBOX_CREATING, extra={"image": image})
+    sandbox = daytona.create(
+        CreateSandboxFromImageParams(
+            image=image, network_block_all=True, ephemeral=True
+        ),
+        timeout=settings.sandbox_create_timeout_seconds,
+    )
+    try:
+        yield sandbox
+    finally:
+        try:
+            daytona.delete(sandbox)
+        except DaytonaError:
+            # ephemeral sandboxes are removed when they stop, so this only
+            # leaves it running until Daytona's auto-stop
+            logger.exception(
+                LogMessages.SANDBOX_DELETE_FAILED, extra={"sandbox": sandbox.id}
+            )

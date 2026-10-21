@@ -4,6 +4,8 @@ version = "0.1.0"
 description = "Mini coding agent with agentic search, a code dependency graph, and an MCP tool server"
 requires-python = ">=3.13"
 dependencies = [
+    "datasets>=5.1.0",
+    "daytona>=0.225.0",
     "openai",
     "pydantic-settings",
     "textual>=8.2.8",

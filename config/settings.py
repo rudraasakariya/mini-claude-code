@@ -36,11 +36,23 @@ class AzureSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=Path(__file__).resolve().parent.parent / EnvConfig.ENV_FILE,
         frozen=True,
+        extra="ignore",  # .env also holds other services' keys
     )
 
     azure_base_url: str
     azure_deployment: str
     azure_api_key: SecretStr
+
+
+class DaytonaSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=Path(__file__).resolve().parent.parent / EnvConfig.ENV_FILE,
+        frozen=True,
+        extra="ignore",
+    )
+
+    daytona_api_url: str
+    daytona_api_key: SecretStr
 
 
 @dataclass(frozen=True)
@@ -124,6 +136,26 @@ class TraceSettings:
         )
     )
     batch: str = TraceFormat.INTERACTIVE_BATCH
+
+
+@dataclass(frozen=True)
+class SweBenchSettings:
+    dataset: str = "princeton-nlp/SWE-bench_Lite"
+    split: str = "test"
+    # official eval images on Docker Hub; "__" in the id becomes "_1776_"
+    image_template: str = "swebench/sweb.eval.x86_64.{instance}:latest"
+    instance_separator: str = "__"
+    image_separator: str = "_1776_"
+    repo_root: Path = Path("/testbed")
+    # the task's own Python comes first, so the agent's python and pytest are it
+    path: str = (
+        "/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/bin:"
+        "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    )
+    sandbox_create_timeout_seconds: float = 1800
+    harness_command_timeout_seconds: int = 120
+    predictions_file_name: str = "predictions.jsonl"
+    model_name: str = "mini-claude-code"
 
 
 @dataclass(frozen=True)
