@@ -1,12 +1,10 @@
-from pathlib import Path
-
 from pydantic import BaseModel, Field
 
 from agent.state import ToolName
 from config.constants import ToolMessages
 from mcp_server.errors import ToolError
 from mcp_server.schemas import ToolSpecification
-from mcp_server.workspace import resolve_in_workspace
+from mcp_server.workspace import Workspace
 
 
 class ReadArgs(BaseModel):
@@ -30,17 +28,21 @@ READ_TOOL_SPECIFICATION = ToolSpecification(
 
 
 def read_file(
-    file_path: str, start_line: int, end_line: int, *, root_path: Path, max_lines: int
+    file_path: str,
+    start_line: int,
+    end_line: int,
+    *,
+    workspace: Workspace,
+    max_lines: int,
 ) -> str:
-    path = resolve_in_workspace(file_path, root_path)
-    if not path.is_file():
+    if not workspace.is_file(file_path):
         raise ToolError(ToolMessages.NOT_A_FILE.format(path=file_path))
 
     if start_line < 1 or end_line < start_line:
         raise ToolError(ToolMessages.INVALID_LINE_RANGE)
 
     try:
-        lines = path.read_text().splitlines()[start_line - 1 : end_line]
+        lines = workspace.read_text(file_path).splitlines()[start_line - 1 : end_line]
     except UnicodeDecodeError as e:
         raise ToolError(ToolMessages.BINARY_FILE.format(path=file_path)) from e
     numbered = [

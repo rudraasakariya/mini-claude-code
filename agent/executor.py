@@ -1,7 +1,6 @@
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
-from pathlib import Path
 
 from pydantic import ValidationError
 
@@ -18,6 +17,7 @@ from mcp_server.tools.glob import GLOB_TOOL_SPECIFICATION, glob
 from mcp_server.tools.grep import GREP_TOOL_SPECIFICATION, grep
 from mcp_server.tools.read import READ_TOOL_SPECIFICATION, read_file
 from mcp_server.tools.run import RUN_TOOL_SPECIFICATION, run
+from mcp_server.workspace import Workspace
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ class ExecutionResult:
 def execute_action(
     action: Action | InvalidToolCall,
     tool_settings: ToolSettings,
-    root_path: Path,
+    workspace: Workspace,
     guardrails: Guardrails,
     protected_settings: ProtectedPathSettings,
 ) -> ExecutionResult:
@@ -53,7 +53,7 @@ def execute_action(
         return ExecutionResult(f"{ExecutorMessages.ERROR_PREFIX}{message}")
 
     decision = pre_tool_decision(
-        guardrails.policy, action, root_path, protected_settings
+        guardrails.policy, action, workspace.root, protected_settings
     )
     if decision.decision is not PermissionDecision.ALLOW:
         logger.warning(
@@ -85,7 +85,7 @@ def execute_action(
         observation = tool_function(
             **validated_args.model_dump(),
             **limits.get(action.tool, {}),
-            root_path=root_path,
+            workspace=workspace,
         )
         return ExecutionResult(post_tool(observation, guardrails))
     except (ValidationError, ToolError) as e:

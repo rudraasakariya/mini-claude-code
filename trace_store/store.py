@@ -1,6 +1,5 @@
 import logging
 import re
-import subprocess
 from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
@@ -9,6 +8,7 @@ from agent.events import AgentEvent, RunFinished, StepFinished
 from agent.state import Action, InvalidToolCall, TextTurn, ToolCallTurn, ToolName
 from config.constants import ExecutorMessages, LogMessages, TraceFormat
 from config.settings import RunConfig, TraceSettings
+from mcp_server.workspace import Workspace
 from trace_store.entries import RunEnd, RunStart, Step, TraceAction, TraceEntry
 
 logger = logging.getLogger(__name__)
@@ -19,17 +19,12 @@ def new_run_id() -> str:
     return datetime.now(UTC).strftime(TraceFormat.RUN_ID_TIME_FORMAT)
 
 
-def current_commit(root_path: Path) -> str | None:
+def current_commit(workspace: Workspace) -> str | None:
     """The workspace's HEAD commit, or None if it is not a git repo."""
-    try:
-        result = subprocess.run(
-            TraceFormat.GIT_HEAD_COMMAND,
-            cwd=root_path,
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-    except (subprocess.CalledProcessError, FileNotFoundError):
+    result = workspace.run(
+        TraceFormat.GIT_HEAD_COMMAND, TraceFormat.GIT_TIMEOUT_SECONDS
+    )
+    if result.exit_code != 0:
         return None  # not a repo, or git is not installed
     return result.stdout.strip()
 
@@ -159,21 +154,21 @@ class TraceRecorder:
 
 def open_trace(
     config: RunConfig,
+    workspace: Workspace,
     model: str,
     task: str,
     task_id: str | None = None,
     graph_enabled: bool = False,
 ) -> TraceRecorder:
     """Start the trace for one run; the run id is the task id when there is one."""
-    root_path = config.workspace.root_path
     start = RunStart(
         run_id=task_id or new_run_id(),
         task_id=task_id,
         task=task,
         model=model,
         graph_enabled=graph_enabled,
-        workspace=str(root_path),
-        repo_commit=current_commit(root_path),
+        workspace=str(workspace.root),
+        repo_commit=current_commit(workspace),
         config=asdict(config),
     )
-    return TraceRecorder(config.trace, start, root_path)
+    return TraceRecorder(config.trace, start, workspace.root)

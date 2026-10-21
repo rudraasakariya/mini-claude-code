@@ -40,8 +40,10 @@ from agent.state import (
     Turn,
     UserTurn,
 )
+from config.constants import Prompts
 from config.settings import BudgetSettings, LoopSettings, RunConfig
 from hooks.guardrails import Guardrails
+from mcp_server.workspace import Workspace
 from router.azure_client import to_azure_tool_definition
 from router.pricing import compute_cost
 
@@ -187,7 +189,7 @@ def call_model(client: OpenAI, model: str, state: State) -> Response:
 
     response = client.responses.create(
         model=model,
-        instructions="You are a coding agent. Use the tools to solve the task.",
+        instructions=Prompts.SYSTEM,
         input=input_items,
         tools=tools,
         parallel_tool_calls=False,
@@ -263,6 +265,7 @@ def run_agent_loop(
     state: State,
     config: RunConfig,
     guardrails: Guardrails,
+    workspace: Workspace,
     on_event: EventHandler = ignore_event,
 ) -> State:
     state.stop_reason = None  # a new prompt starts a new run
@@ -301,7 +304,7 @@ def run_agent_loop(
                 execution = execute_action(
                     result,
                     config.tools,
-                    root_path=config.workspace.root_path,
+                    workspace=workspace,
                     guardrails=guardrails,
                     protected_settings=config.protected_paths,
                 )

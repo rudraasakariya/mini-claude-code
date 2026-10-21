@@ -1,14 +1,13 @@
 import re
-from pathlib import Path
+from pathlib import PurePosixPath
 
 from pydantic import BaseModel, Field
 
 from agent.state import ToolName
 from config.constants import ToolMessages
 from mcp_server.errors import ToolError
-from mcp_server.project_files import list_project_files
 from mcp_server.schemas import ToolSpecification
-from mcp_server.workspace import resolve_in_workspace
+from mcp_server.workspace import Workspace
 
 
 class GrepArgs(BaseModel):
@@ -38,31 +37,23 @@ def grep(
     path: str = ".",
     include: str | None = None,
     *,
-    root_path: Path,
+    workspace: Workspace,
     max_results: int,
 ) -> str:
+    # check here so a bad pattern gets the same error locally and in a sandbox
     try:
-        regex = re.compile(pattern)
+        re.compile(pattern)
     except re.error as e:
         raise ToolError(ToolMessages.INVALID_REGEX.format(error=e)) from e
 
-    root = resolve_in_workspace(path, root_path)
-    if not root.exists():
+    if not workspace.exists(path):
         raise ToolError(ToolMessages.PATH_NOT_FOUND.format(path=path))
 
-    files = [root] if root.is_file() else list_project_files(root)
-
-    matches: list[str] = []
-    for file in files:
-        if include and not file.match(include):
-            continue
-        try:
-            text = file.read_text()
-        except UnicodeDecodeError:
-            continue  # binary file, nothing to search
-        for number, line in enumerate(text.splitlines(), start=1):
-            if regex.search(line):
-                matches.append(f"{file}:{number}: {line}")
+    matches = [
+        f"{match.path}:{match.line_number}: {match.line}"
+        for match in workspace.grep(pattern, path)
+        if not include or PurePosixPath(match.path).match(include)
+    ]
 
     if not matches:
         return ToolMessages.NO_MATCHES

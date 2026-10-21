@@ -28,6 +28,7 @@ from agent.state import (
 from config.constants import LogMessages, UiMessages
 from config.settings import RunConfig, UiSettings
 from hooks.guardrails import Guardrails
+from mcp_server.workspace import LocalWorkspace
 from trace_store.store import open_trace
 
 logger = logging.getLogger(__name__)
@@ -94,13 +95,15 @@ class AgentApp(App[None]):
         self.state.conversation.append(UserTurn(prompt))
         try:
             # each prompt is its own run, so it gets its own trace file
-            recorder = open_trace(self.config, self.model, task=prompt)
+            workspace = LocalWorkspace(self.config.workspace.root_path)
+            recorder = open_trace(self.config, workspace, self.model, task=prompt)
             run_agent_loop(
                 self.client,
                 self.model,
                 self.state,
                 self.config,
                 self.guardrails,
+                workspace,
                 on_event=fan_out(
                     # events come from this thread; hand each one to the UI thread
                     lambda event: self.call_from_thread(self.show_event, event),

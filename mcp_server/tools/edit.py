@@ -1,5 +1,4 @@
 import difflib
-from pathlib import Path
 
 from pydantic import BaseModel, Field
 
@@ -7,13 +6,17 @@ from agent.state import ToolName
 from config.constants import ToolMessages
 from mcp_server.errors import ToolError
 from mcp_server.schemas import ToolSpecification
-from mcp_server.workspace import resolve_in_workspace
+from mcp_server.workspace import Workspace
 
 
 class EditArgs(BaseModel):
-    file_path: str = Field(description="Path of the file to edit, relative to the project root.")
+    file_path: str = Field(
+        description="Path of the file to edit, relative to the project root."
+    )
     old_string: str = Field(description="The string to be replaced in the file.")
-    new_string: str = Field(description="The string to replace the old string with in the file.")
+    new_string: str = Field(
+        description="The string to replace the old string with in the file."
+    )
 
 
 EDIT_TOOL_SPECIFICATION = ToolSpecification(
@@ -29,17 +32,18 @@ EDIT_TOOL_SPECIFICATION = ToolSpecification(
 )
 
 
-def edit_file(file_path: str, old_string: str, new_string: str, *, root_path: Path) -> str:
+def edit_file(
+    file_path: str, old_string: str, new_string: str, *, workspace: Workspace
+) -> str:
     if old_string == new_string:
         raise ToolError(ToolMessages.EDIT_SAME_STRING)
-    file = resolve_in_workspace(file_path, root_path)
-    if not file.is_file():
+    if not workspace.is_file(file_path):
         raise ToolError(ToolMessages.NOT_A_FILE.format(path=file_path))
     if not old_string:
         raise ToolError(ToolMessages.EDIT_EMPTY_OLD_STRING)
 
     try:
-        content = file.read_text()
+        content = workspace.read_text(file_path)
     except UnicodeDecodeError as e:
         raise ToolError(ToolMessages.BINARY_FILE.format(path=file_path)) from e
     count = content.count(old_string)
@@ -51,7 +55,7 @@ def edit_file(file_path: str, old_string: str, new_string: str, *, root_path: Pa
         )
 
     new_content = content.replace(old_string, new_string)
-    file.write_text(new_content)
+    workspace.write_text(file_path, new_content)
     diff = difflib.unified_diff(
         content.splitlines(),
         new_content.splitlines(),

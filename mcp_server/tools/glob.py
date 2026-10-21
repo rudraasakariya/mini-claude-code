@@ -1,13 +1,12 @@
-from pathlib import Path
+from pathlib import PurePosixPath
 
 from pydantic import BaseModel, Field
 
 from agent.state import ToolName
 from config.constants import ToolMessages
 from mcp_server.errors import ToolError
-from mcp_server.project_files import list_project_files
 from mcp_server.schemas import ToolSpecification
-from mcp_server.workspace import resolve_in_workspace
+from mcp_server.workspace import Workspace
 
 
 class GlobArgs(BaseModel):
@@ -27,12 +26,17 @@ GLOB_TOOL_SPECIFICATION = ToolSpecification(
 )
 
 
-def glob(pattern: str, path: str = ".", *, root_path: Path, max_results: int) -> str:
-    root = resolve_in_workspace(path, root_path)
-    if not root.exists():
+def glob(
+    pattern: str, path: str = ".", *, workspace: Workspace, max_results: int
+) -> str:
+    if not workspace.exists(path):
         raise ToolError(ToolMessages.PATH_NOT_FOUND.format(path=path))
 
-    results = [str(file) for file in list_project_files(root) if file.match(pattern)]
+    results = [
+        file
+        for file in workspace.list_files(path)
+        if PurePosixPath(file).match(pattern)
+    ]
 
     if not results:
         return ToolMessages.NO_MATCHES

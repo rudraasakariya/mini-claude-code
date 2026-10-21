@@ -15,6 +15,7 @@ from config.settings import (
 )
 from hooks.guardrails import Guardrails
 from hooks.policy import load_policy
+from mcp_server.workspace import LocalWorkspace
 from router.azure_client import make_client
 from trace_store.store import open_trace
 from ui.app import AgentApp
@@ -30,8 +31,11 @@ def run_prompt(
 ) -> None:
     """Add the user's prompt to the history, run the agent, and print the result."""
     state.conversation.append(UserTurn(prompt))
-    recorder = open_trace(config, model, task=prompt)
-    run_agent_loop(client, model, state, config, guardrails, on_event=recorder)
+    workspace = LocalWorkspace(config.workspace.root_path)
+    recorder = open_trace(config, workspace, model, task=prompt)
+    run_agent_loop(
+        client, model, state, config, guardrails, workspace, on_event=recorder
+    )
 
     last_turn = state.conversation[-1]
     if state.stop_reason is LoopState.FINAL_ANSWER_GIVEN and isinstance(

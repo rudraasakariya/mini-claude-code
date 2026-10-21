@@ -1,12 +1,9 @@
-import subprocess
-from pathlib import Path
-
 from pydantic import BaseModel, Field
 
 from agent.state import ToolName
 from config.constants import ToolMessages
-from mcp_server.errors import ToolError
 from mcp_server.schemas import ToolSpecification
+from mcp_server.workspace import Workspace
 
 
 class RunArgs(BaseModel):
@@ -48,26 +45,13 @@ def run(
     timeout: int,
     description: str = "",
     *,
-    root_path: Path,
+    workspace: Workspace,
     max_output_chars: int,
     max_timeout_seconds: int,
 ) -> str:
     capped_timeout = min(timeout, max_timeout_seconds)
-    try:
-        result = subprocess.run(
-            command,
-            cwd=root_path,
-            shell=True,
-            capture_output=True,
-            stdin=subprocess.DEVNULL,
-            text=True,
-            timeout=capped_timeout,
-            check=False,
-        )
-    except subprocess.TimeoutExpired as e:
-        raise ToolError(ToolMessages.COMMAND_TIMEOUT.format(timeout=capped_timeout)) from e
-
+    result = workspace.run(command, capped_timeout)
     output = ToolMessages.COMMAND_OUTPUT.format(
-        exit_code=result.returncode, stdout=result.stdout, stderr=result.stderr
+        exit_code=result.exit_code, stdout=result.stdout, stderr=result.stderr
     )
     return truncate_middle(output, max_output_chars)
