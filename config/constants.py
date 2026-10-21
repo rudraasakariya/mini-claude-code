@@ -96,7 +96,7 @@ class LogMessages:
     RUN_CRASHED: Final[str] = "Agent run crashed."
     TRACE_STARTED: Final[str] = "Trace file started."
     SANDBOX_CREATING: Final[str] = "Creating sandbox from the task image."
-    SANDBOX_DELETE_FAILED: Final[str] = "Could not delete the sandbox."
+    SANDBOX_STOP_FAILED: Final[str] = "Could not stop the sandbox."
     TASK_STARTED: Final[str] = "SWE-bench task started."
     TASK_FAILED: Final[str] = "SWE-bench task crashed; recording an empty patch."
     TASK_FINISHED: Final[str] = "SWE-bench task finished."

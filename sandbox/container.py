@@ -50,10 +50,11 @@ def task_sandbox(
         yield sandbox
     finally:
         try:
-            daytona.delete(sandbox)
+            # an ephemeral sandbox is deleted when it stops, so stopping is
+            # enough, and it needs only write access, not delete
+            sandbox.stop()
         except DaytonaError:
-            # ephemeral sandboxes are removed when they stop, so this only
-            # leaves it running until Daytona's auto-stop
+            # Daytona's auto-stop (15 min) still stops, and so deletes, it
             logger.exception(
-                LogMessages.SANDBOX_DELETE_FAILED, extra={"sandbox": sandbox.id}
+                LogMessages.SANDBOX_STOP_FAILED, extra={"sandbox": sandbox.id}
             )
