@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 
 from pydantic import ValidationError
@@ -30,19 +31,26 @@ TOOLS: dict[ToolName, tuple[ToolSpecification, Callable[..., str]]] = {
 }
 
 
+@dataclass(frozen=True)
+class ExecutionResult:
+    observation: str
+    # the hook rule that stopped the call, or None if it was allowed to run
+    blocked_rule: str | None = None
+
+
 def execute_action(
     action: Action | InvalidToolCall,
     tool_settings: ToolSettings,
     root_path: Path,
     guardrails: Guardrails,
     protected_settings: ProtectedPathSettings,
-) -> str:
+) -> ExecutionResult:
     if isinstance(action, InvalidToolCall):
         available = ", ".join(tool.value for tool in TOOLS)
         message = ExecutorMessages.INVALID_TOOL_CALL.format(
             tool=action.name, available=available
         )
-        return f"{ExecutorMessages.ERROR_PREFIX}{message}"
+        return ExecutionResult(f"{ExecutorMessages.ERROR_PREFIX}{message}")
 
     decision = pre_tool_decision(
         guardrails.policy, action, root_path, protected_settings
@@ -52,7 +60,12 @@ def execute_action(
             LogMessages.TOOL_BLOCKED,
             extra={"tool": action.tool.value, "rule": decision.rule},
         )
-        return f"{ExecutorMessages.ERROR_PREFIX}{ExecutorMessages.TOOL_BLOCKED.format(tool=action.tool.value, rule=decision.rule)}"
+        message = ExecutorMessages.TOOL_BLOCKED.format(
+            tool=action.tool.value, rule=decision.rule
+        )
+        return ExecutionResult(
+            f"{ExecutorMessages.ERROR_PREFIX}{message}", blocked_rule=decision.rule
+        )
 
     # parse_response only builds an Action for a tool in TOOLS
     specification, tool_function = TOOLS[action.tool]
@@ -74,12 +87,15 @@ def execute_action(
             **limits.get(action.tool, {}),
             root_path=root_path,
         )
-        return post_tool(observation, guardrails)
+        return ExecutionResult(post_tool(observation, guardrails))
     except (ValidationError, ToolError) as e:
-        return f"{ExecutorMessages.ERROR_PREFIX}{e}"
+        return ExecutionResult(f"{ExecutorMessages.ERROR_PREFIX}{e}")
     except Exception as e:
         logger.exception(
             LogMessages.TOOL_FAILED,
             extra={"tool": action.tool.value, "call_id": action.call_id},
         )
-        return f"{ExecutorMessages.ERROR_PREFIX}{ExecutorMessages.TOOL_FAILED.format(tool=action.tool.value, error=type(e).__name__)}"
+        message = ExecutorMessages.TOOL_FAILED.format(
+            tool=action.tool.value, error=type(e).__name__
+        )
+        return ExecutionResult(f"{ExecutorMessages.ERROR_PREFIX}{message}")

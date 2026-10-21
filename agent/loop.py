@@ -1,4 +1,5 @@
 import json
+import time
 
 from openai import APIError, OpenAI
 from openai.types.responses import (
@@ -18,6 +19,8 @@ from agent.events import (
     EventHandler,
     ModelCallStarted,
     RunFinished,
+    StepFinished,
+    StepUsage,
     ToolCallFinished,
     ToolCallStarted,
     ignore_event,
@@ -270,43 +273,62 @@ def run_agent_loop(
             break
 
         on_event(ModelCallStarted())
+        started = time.perf_counter()
         try:
             response = call_model(client, model, state)
         except APIError:
             state.stop_reason = LoopState.API_ERROR
             break
+        latency_seconds = time.perf_counter() - started
 
         # count what this call used before anything else can fail
+        usage = StepUsage()
         if response.usage is not None:
+            usage = StepUsage(
+                input_tokens=response.usage.input_tokens,
+                cached_tokens=response.usage.input_tokens_details.cached_tokens,
+                output_tokens=response.usage.output_tokens,
+                cost=compute_cost(response.usage, config.pricing),
+            )
             state.token_count += response.usage.total_tokens
-            state.spend += compute_cost(response.usage, config.pricing)
+            state.spend += usage.cost
 
         result, reasoning, preamble = parse_response(response)
 
         match result:
             case Action() | InvalidToolCall():
                 on_event(ToolCallStarted(action=result, preamble=preamble))
-                observation = execute_action(
+                execution = execute_action(
                     result,
                     config.tools,
                     root_path=config.workspace.root_path,
                     guardrails=guardrails,
                     protected_settings=config.protected_paths,
                 )
-                on_event(ToolCallFinished(action=result, observation=observation))
-                state.conversation.append(
-                    ToolCallTurn(
-                        action=result,
-                        observation=observation,
-                        reasoning=reasoning,
-                        preamble=preamble,
-                    )
+                on_event(
+                    ToolCallFinished(action=result, observation=execution.observation)
                 )
+                turn = ToolCallTurn(
+                    action=result,
+                    observation=execution.observation,
+                    reasoning=reasoning,
+                    preamble=preamble,
+                )
+                blocked_rule = execution.blocked_rule
             case Message(text=text, phase=phase):
                 on_event(AssistantText(message=result))
-                state.conversation.append(
-                    TextTurn(text=text, phase=phase, reasoning=reasoning)
-                )
+                turn = TextTurn(text=text, phase=phase, reasoning=reasoning)
+                blocked_rule = None
+
+        state.conversation.append(turn)
+        on_event(
+            StepFinished(
+                turn=turn,
+                usage=usage,
+                latency_seconds=latency_seconds,
+                blocked_rule=blocked_rule,
+            )
+        )
 
     if state.stop_reason is not None:
         on_event(
