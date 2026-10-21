@@ -5,7 +5,7 @@ from pathlib import Path
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from config.constants import EnvConfig
+from config.constants import EnvConfig, TraceFormat
 
 
 @dataclass(frozen=True)
@@ -116,6 +116,17 @@ class ProtectedPathSettings:
 
 
 @dataclass(frozen=True)
+class TraceSettings:
+    # inside the harness folder, so traces never land in the repo being fixed
+    output_dir: Path = field(
+        default_factory=lambda: (
+            Path(__file__).resolve().parent.parent / TraceFormat.RUNS_DIR_NAME
+        )
+    )
+    batch: str = TraceFormat.INTERACTIVE_BATCH
+
+
+@dataclass(frozen=True)
 class RunConfig:
     """Every settings group a run needs, built once at startup."""
 
@@ -128,3 +139,4 @@ class RunConfig:
     protected_paths: ProtectedPathSettings = field(
         default_factory=ProtectedPathSettings
     )
+    trace: TraceSettings = field(default_factory=TraceSettings)

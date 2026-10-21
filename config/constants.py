@@ -93,6 +93,7 @@ class LogMessages:
     TOOL_BLOCKED: Final[str] = "Tool call blocked by policy rule."
     SECRET_MASKED: Final[str] = "Secrets masked in tool output."
     RUN_CRASHED: Final[str] = "Agent run crashed."
+    TRACE_STARTED: Final[str] = "Trace file started."
 
 
 class PolicyMessages:
@@ -150,3 +151,14 @@ class SecretPatterns:
         "aws_access_key": r"AKIA[0-9A-Z]{16}",
     }
     REDACTED: Final[str] = "[REDACTED: {name}]"
+
+
+class TraceFormat:
+    RUNS_DIR_NAME: Final[str] = "runs"
+    # runs started by hand (CLI or app); the eval harness names its own batches
+    INTERACTIVE_BATCH: Final[str] = "interactive"
+    FILE_SUFFIX: Final[str] = ".jsonl"
+    RUN_ID_TIME_FORMAT: Final[str] = "%Y%m%dT%H%M%S%f"
+    # grep prints "path:line: text"; the path is everything before ":<line>: "
+    GREP_LINE_PATH_REGEX: Final[str] = r"^(.+?):\d+: "
+    GIT_HEAD_COMMAND: Final[tuple[str, ...]] = ("git", "rev-parse", "HEAD")
