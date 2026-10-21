@@ -14,6 +14,7 @@ from agent.events import (
     RunFinished,
     ToolCallFinished,
     ToolCallStarted,
+    fan_out,
 )
 from agent.loop import run_agent_loop
 from agent.state import (
@@ -27,6 +28,7 @@ from agent.state import (
 from config.constants import LogMessages, UiMessages
 from config.settings import RunConfig, UiSettings
 from hooks.guardrails import Guardrails
+from trace_store.store import open_trace
 
 logger = logging.getLogger(__name__)
 
@@ -91,14 +93,19 @@ class AgentApp(App[None]):
         """Runs in a background thread so the screen stays responsive."""
         self.state.conversation.append(UserTurn(prompt))
         try:
+            # each prompt is its own run, so it gets its own trace file
+            recorder = open_trace(self.config, self.model, task=prompt)
             run_agent_loop(
                 self.client,
                 self.model,
                 self.state,
                 self.config,
                 self.guardrails,
-                # events come from this thread; hand each one to the UI thread
-                on_event=lambda event: self.call_from_thread(self.show_event, event),
+                on_event=fan_out(
+                    # events come from this thread; hand each one to the UI thread
+                    lambda event: self.call_from_thread(self.show_event, event),
+                    recorder,
+                ),
             )
         except Exception as error:
             logger.exception(LogMessages.RUN_CRASHED)
