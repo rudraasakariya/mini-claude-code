@@ -1,10 +1,13 @@
 import argparse
 import json
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import Lock
 from typing import Any
 
 from datasets import load_dataset
+from daytona import Daytona
 from openai import OpenAI
 
 from agent.loop import run_agent_loop
@@ -42,6 +45,11 @@ def load_tasks(
     return tasks[:limit] if limit else tasks
 
 
+def read_split(name: str, settings: SweBenchSettings) -> list[str]:
+    path = settings.splits_dir / f"{name}{settings.split_suffix}"
+    return [line for line in path.read_text().splitlines() if line]
+
+
 def solve_task(
     task: dict[str, Any],
     client: OpenAI,
@@ -66,17 +74,67 @@ def solve_task(
     return diff.stdout
 
 
+def run_task(
+    task: dict[str, Any],
+    client: OpenAI,
+    model: str,
+    config: RunConfig,
+    guardrails: Guardrails,
+    daytona: Daytona,
+    settings: SweBenchSettings,
+    predictions_path: Path,
+    write_lock: Lock,
+) -> None:
+    """Solve one task in its own sandbox and append its prediction."""
+    instance_id = task["instance_id"]
+    logger.info(LogMessages.TASK_STARTED, extra={"instance_id": instance_id})
+    try:
+        with task_sandbox(daytona, instance_id, settings) as sandbox:
+            workspace = DaytonaWorkspace(
+                sandbox,
+                settings.repo_root,
+                settings.harness_command_timeout_seconds,
+                env={EvalMessages.PATH_VARIABLE: settings.path},
+            )
+            patch = solve_task(
+                task, client, model, config, guardrails, workspace, settings
+            )
+    except Exception:
+        # one broken task must not end the batch; it counts as unsolved
+        logger.exception(LogMessages.TASK_FAILED, extra={"instance_id": instance_id})
+        patch = ""
+    prediction = {
+        "instance_id": instance_id,
+        "model_name_or_path": settings.model_name,
+        "model_patch": patch,
+    }
+    # workers finish in any order; the lock keeps each line whole
+    with write_lock, predictions_path.open("a") as file:
+        file.write(json.dumps(prediction) + "\n")
+    logger.info(
+        LogMessages.TASK_FINISHED,
+        extra={"instance_id": instance_id, "patch_chars": len(patch)},
+    )
+
+
 def main() -> None:
+    settings = SweBenchSettings()
     parser = argparse.ArgumentParser(description=EvalMessages.DESCRIPTION)
     parser.add_argument("--batch", required=True, help=EvalMessages.BATCH_HELP)
+    parser.add_argument("--split", default=None, help=EvalMessages.SPLIT_HELP)
     parser.add_argument(
         "--instance", action="append", default=[], help=EvalMessages.INSTANCE_HELP
     )
     parser.add_argument("--limit", type=int, default=None, help=EvalMessages.LIMIT_HELP)
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=settings.solve_workers,
+        help=EvalMessages.WORKERS_HELP,
+    )
     args = parser.parse_args()
 
     configure_logging(LoggingSettings())
-    settings = SweBenchSettings()
     config = RunConfig(
         workspace=WorkSpaceSettings(root_path=settings.repo_root),
         trace=TraceSettings(batch=args.batch),
@@ -98,43 +156,25 @@ def main() -> None:
     )
     predictions_path.parent.mkdir(parents=True, exist_ok=True)
 
-    for task in load_tasks(settings, args.instance, args.limit):
-        instance_id = task["instance_id"]
-        logger.info(LogMessages.TASK_STARTED, extra={"instance_id": instance_id})
-        try:
-            with task_sandbox(daytona, instance_id, settings) as sandbox:
-                workspace = DaytonaWorkspace(
-                    sandbox,
-                    settings.repo_root,
-                    settings.harness_command_timeout_seconds,
-                    env={EvalMessages.PATH_VARIABLE: settings.path},
-                )
-                patch = solve_task(
-                    task,
-                    client,
-                    azure.azure_deployment,
-                    config,
-                    guardrails,
-                    workspace,
-                    settings,
-                )
-        except Exception:
-            # one broken task must not end the batch; it counts as unsolved
-            logger.exception(
-                LogMessages.TASK_FAILED, extra={"instance_id": instance_id}
+    instance_ids = list(args.instance)
+    if args.split:
+        instance_ids += read_split(args.split, settings)
+    tasks = load_tasks(settings, instance_ids, args.limit)
+    write_lock = Lock()
+    with ThreadPoolExecutor(max_workers=args.workers) as pool:
+        for task in tasks:
+            pool.submit(
+                run_task,
+                task,
+                client,
+                azure.azure_deployment,
+                config,
+                guardrails,
+                daytona,
+                settings,
+                predictions_path,
+                write_lock,
             )
-            patch = ""
-        prediction = {
-            "instance_id": instance_id,
-            "model_name_or_path": settings.model_name,
-            "model_patch": patch,
-        }
-        with predictions_path.open("a") as file:
-            file.write(json.dumps(prediction) + "\n")
-        logger.info(
-            LogMessages.TASK_FINISHED,
-            extra={"instance_id": instance_id, "patch_chars": len(patch)},
-        )
 
 
 if __name__ == "__main__":

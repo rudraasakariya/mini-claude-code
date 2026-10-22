@@ -157,6 +157,14 @@ class SweBenchSettings:
     harness_command_timeout_seconds: int = 120
     predictions_file_name: str = "predictions.jsonl"
     model_name: str = "mini-claude-code"
+    # fixed task lists, one instance id per line; never edited once runs exist
+    splits_dir: Path = field(
+        default_factory=lambda: (
+            Path(__file__).resolve().parent.parent / "eval" / "splits"
+        )
+    )
+    split_suffix: str = ".txt"
+    solve_workers: int = 4
     # grading: the official harness's default test timeout
     eval_timeout_seconds: int = 1800
     grade_workers: int = 4

@@ -220,6 +220,8 @@ class EvalMessages:
         "A task to run, e.g. django__django-11099. Repeat for more."
     )
     LIMIT_HELP: Final[str] = "Run at most this many tasks."
+    SPLIT_HELP: Final[str] = "A fixed task list from eval/splits/, e.g. dev50."
+    WORKERS_HELP: Final[str] = "How many tasks to run at once."
     GIT_DIFF_COMMAND: Final[str] = "git diff"
     PATH_VARIABLE: Final[str] = "PATH"
 
