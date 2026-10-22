@@ -100,6 +100,10 @@ class LogMessages:
     TASK_STARTED: Final[str] = "SWE-bench task started."
     TASK_FAILED: Final[str] = "SWE-bench task crashed; recording an empty patch."
     TASK_FINISHED: Final[str] = "SWE-bench task finished."
+    GRADE_STARTED: Final[str] = "Grading task."
+    GRADE_FAILED: Final[str] = "Grading crashed; counting the task as unresolved."
+    GRADE_FINISHED: Final[str] = "Task graded."
+    GRADE_SUMMARY: Final[str] = "Batch graded."
 
 
 class PolicyMessages:
@@ -218,3 +222,24 @@ class EvalMessages:
     LIMIT_HELP: Final[str] = "Run at most this many tasks."
     GIT_DIFF_COMMAND: Final[str] = "git diff"
     PATH_VARIABLE: Final[str] = "PATH"
+
+
+class GradeMessages:
+    DESCRIPTION: Final[str] = (
+        "Grade a batch's predictions with the official SWE-bench grader, "
+        "running each task's tests in a Daytona sandbox."
+    )
+    BATCH_HELP: Final[str] = "The batch to grade; reads runs/<batch>/predictions.jsonl."
+    WORKERS_HELP: Final[str] = "How many tasks to grade at once."
+    EVAL_SCRIPT_PATH: Final[str] = "/eval.sh"
+    RUN_EVAL_SCRIPT: Final[str] = "/bin/bash /eval.sh"
+    # undoes a failed apply attempt so the next one starts from a clean tree
+    RESET_TREE: Final[str] = "/bin/bash -c 'git checkout -- . ; git clean -fd'"
+    CHECK_ALREADY_APPLIED: Final[str] = "git apply --check --reverse {patch}"
+    LOG_SUFFIX: Final[str] = ".log"
+    TIMEOUT_NOTE: Final[str] = "\n\nTimeout error: {timeout} seconds exceeded."
+    # why a task is unresolved before its tests ever ran
+    EMPTY_PATCH: Final[str] = "empty_patch"
+    PATCH_APPLY_FAILED: Final[str] = "patch_apply_failed"
+    TIMED_OUT: Final[str] = "timed_out"
+    CRASHED: Final[str] = "crashed"

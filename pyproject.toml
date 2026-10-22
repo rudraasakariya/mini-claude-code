@@ -8,6 +8,7 @@ dependencies = [
     "daytona>=0.225.0",
     "openai",
     "pydantic-settings",
+    "swebench>=5.0.2",
     "textual>=8.2.8",
 ]
 

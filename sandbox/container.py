@@ -35,14 +35,20 @@ def task_image(instance_id: str, settings: SweBenchSettings) -> str:
 
 @contextmanager
 def task_sandbox(
-    daytona: Daytona, instance_id: str, settings: SweBenchSettings
+    daytona: Daytona,
+    instance_id: str,
+    settings: SweBenchSettings,
+    block_network: bool = True,
 ) -> Iterator[Sandbox]:
-    """One sandbox for one task, with no network, deleted when the block ends."""
+    """
+    One sandbox for one task, deleted when the block ends. The agent gets no
+    network; grading needs it because the eval script reinstalls the repo.
+    """
     image = task_image(instance_id, settings)
     logger.info(LogMessages.SANDBOX_CREATING, extra={"image": image})
     sandbox = daytona.create(
         CreateSandboxFromImageParams(
-            image=image, network_block_all=True, ephemeral=True
+            image=image, network_block_all=block_network, ephemeral=True
         ),
         timeout=settings.sandbox_create_timeout_seconds,
     )

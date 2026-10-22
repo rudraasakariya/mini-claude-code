@@ -140,7 +140,8 @@ class TraceSettings:
 
 @dataclass(frozen=True)
 class SweBenchSettings:
-    dataset: str = "princeton-nlp/SWE-bench_Lite"
+    # the SWE-bench org's copy also carries each task's image and eval script
+    dataset: str = "SWE-bench/SWE-bench_Lite"
     split: str = "test"
     # official eval images on Docker Hub; "__" in the id becomes "_1776_"
     image_template: str = "swebench/sweb.eval.x86_64.{instance}:latest"
@@ -156,6 +157,11 @@ class SweBenchSettings:
     harness_command_timeout_seconds: int = 120
     predictions_file_name: str = "predictions.jsonl"
     model_name: str = "mini-claude-code"
+    # grading: the official harness's default test timeout
+    eval_timeout_seconds: int = 1800
+    grade_workers: int = 4
+    grade_logs_dir_name: str = "logs"
+    results_file_name: str = "results.json"
 
 
 @dataclass(frozen=True)
