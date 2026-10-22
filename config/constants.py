@@ -104,6 +104,7 @@ class LogMessages:
     GRADE_FAILED: Final[str] = "Grading crashed; counting the task as unresolved."
     GRADE_FINISHED: Final[str] = "Task graded."
     GRADE_SUMMARY: Final[str] = "Batch graded."
+    TAXONOMY_SUMMARY: Final[str] = "Failures labelled."
 
 
 class PolicyMessages:
@@ -245,3 +246,32 @@ class GradeMessages:
     PATCH_APPLY_FAILED: Final[str] = "patch_apply_failed"
     TIMED_OUT: Final[str] = "timed_out"
     CRASHED: Final[str] = "crashed"
+
+
+class TaxonomyMessages:
+    DESCRIPTION: Final[str] = (
+        "Label each unresolved task in a graded batch with one failure cause. "
+        "Rules decide what they can; the rest are written out for hand labelling."
+    )
+    BATCH_HELP: Final[str] = "The graded batch; reads runs/<batch>/results.json."
+    TRACE_SUFFIX: Final[str] = ".jsonl"
+    OUTPUT_FILE: Final[str] = "taxonomy.json"
+    REVIEW_FILE: Final[str] = "to_label.md"
+    # {"<instance_id>": "<label>"}, written by hand after reading to_label.md
+    HAND_LABELS_FILE: Final[str] = "hand_labels.json"
+    DIFF_FILE_REGEX: Final[str] = r"^diff --git a/(\S+) b/"
+    # git diff/status after an edit is reviewing the change, not testing it
+    GIT_COMMAND_PREFIX: Final[str] = "git "
+    NO_RUN_END: Final[str] = "trace has no run_end"
+    NO_RUN_AFTER_EDIT: Final[str] = "no run command after the last edit"
+    NONE: Final[str] = "(none)"
+    ISSUE_CHARS: Final[int] = 2000
+    REVIEW_TEMPLATE: Final[str] = (
+        "# {instance_id}\n\n"
+        "## Issue\n\n{issue}\n\n"
+        "## Our patch\n\n```diff\n{ours}\n```\n\n"
+        "## Gold patch\n\n```diff\n{gold}\n```\n\n"
+        "## Hidden tests: {passing}/{total} FAIL_TO_PASS passing; still failing\n\n"
+        "```\n{failing}\n```\n\n"
+        "## Agent's final reply ({steps} steps)\n\n{final}\n\n---\n"
+    )
