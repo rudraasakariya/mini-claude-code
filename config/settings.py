@@ -110,6 +110,21 @@ class PricingSettings:
     tokens_per_price_unit: int = 1_000_000
 
 
+# Azure Global Standard prices per deployment. Sol's are from third-party
+# trackers (azurespeed.com); check them against Azure's own price list.
+MODEL_PRICING: dict[str, PricingSettings] = {
+    "gpt-6-luna": PricingSettings(),
+    "gpt-6-sol": PricingSettings(
+        short_context=PriceTier(
+            input=2.00, cached_input=0.20, cache_write=2.50, output=10.00
+        ),
+        long_context=PriceTier(
+            input=4.00, cached_input=0.40, cache_write=5.00, output=15.00
+        ),
+    ),
+}
+
+
 @dataclass(frozen=True)
 class PolicySettings:
     # found next to this file, not in the workspace, so it works from any

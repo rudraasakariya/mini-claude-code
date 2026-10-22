@@ -15,6 +15,7 @@ from agent.state import State, UserTurn
 from config.constants import EvalMessages, LogMessages, Prompts, SecretNames
 from config.logging_setup import configure_logging
 from config.settings import (
+    MODEL_PRICING,
     AzureSettings,
     DaytonaSettings,
     LoggingSettings,
@@ -132,14 +133,18 @@ def main() -> None:
         default=settings.solve_workers,
         help=EvalMessages.WORKERS_HELP,
     )
+    parser.add_argument("--model", default=None, help=EvalMessages.MODEL_HELP)
     args = parser.parse_args()
 
     configure_logging(LoggingSettings())
+    azure = AzureSettings()  # type: ignore[call-arg]
+    model = args.model or azure.azure_deployment
     config = RunConfig(
         workspace=WorkSpaceSettings(root_path=settings.repo_root),
         trace=TraceSettings(batch=args.batch),
+        # a KeyError here means the model has no prices yet; never guess them
+        pricing=MODEL_PRICING[model],
     )
-    azure = AzureSettings()  # type: ignore[call-arg]
     daytona_settings = DaytonaSettings()  # type: ignore[call-arg]
     client = make_client(azure, OpenAISettings())
     guardrails = Guardrails(
@@ -167,7 +172,7 @@ def main() -> None:
                 run_task,
                 task,
                 client,
-                azure.azure_deployment,
+                model,
                 config,
                 guardrails,
                 daytona,

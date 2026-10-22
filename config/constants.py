@@ -223,6 +223,10 @@ class EvalMessages:
     LIMIT_HELP: Final[str] = "Run at most this many tasks."
     SPLIT_HELP: Final[str] = "A fixed task list from eval/splits/, e.g. dev50."
     WORKERS_HELP: Final[str] = "How many tasks to run at once."
+    MODEL_HELP: Final[str] = (
+        "Azure deployment to run instead of AZURE_DEPLOYMENT; needs prices in "
+        "MODEL_PRICING."
+    )
     GIT_DIFF_COMMAND: Final[str] = "git diff"
     PATH_VARIABLE: Final[str] = "PATH"
 
