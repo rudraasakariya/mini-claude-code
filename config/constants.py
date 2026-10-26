@@ -206,7 +206,13 @@ class Prompts:
         "<issue>\n{issue}\n</issue>\n\n"
         "Change only non-test source files; the fix is graded by hidden tests. "
         "Reproduce the problem first if you can, then make the smallest change "
-        "that fixes it, and run the existing tests near the code you changed."
+        "that fixes it, and run the existing tests near the code you changed.\n\n"
+        "Existing tests passing is not enough: they passed before your fix too. "
+        "Before your final reply, write a small check of the behaviour the issue "
+        "says it wants (the end result it describes, not the cause you assumed), "
+        "plus one or two nearby cases the same bug would affect. Confirm it fails "
+        "on the original code (`git stash`, run it, `git stash pop`) and passes "
+        "with your change. Do not add this check to the repository."
     )
 
 
