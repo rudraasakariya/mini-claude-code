@@ -59,12 +59,17 @@ def read_split(name: str, settings: SweBenchSettings) -> list[str]:
 
 
 def finished_ids(predictions_path: Path) -> set[str]:
-    """Tasks that reached a recorded end and saved a patch; a rerun skips them."""
+    """
+    Tasks that reached a recorded end and saved a non-empty patch; a rerun
+    skips them. An empty patch is retried: a sandbox that dies mid-run still
+    lets the loop end normally, but its diff comes back empty.
+    """
     if not predictions_path.exists():
         return set()
     saved = {
-        json.loads(line)["instance_id"]
-        for line in predictions_path.read_text().splitlines()
+        prediction["instance_id"]
+        for prediction in map(json.loads, predictions_path.read_text().splitlines())
+        if prediction["model_patch"].strip()
     }
     run_end = RunEnd.model_fields["type"].default
     finished = set()
