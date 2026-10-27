@@ -182,6 +182,9 @@ class SweBenchSettings:
     solve_workers: int = 4
     # grading: the official harness's default test timeout
     eval_timeout_seconds: int = 1800
+    # Daytona stops a sandbox after this many minutes without SDK calls, even
+    # mid-command; it must outlast one eval script run
+    grade_auto_stop_minutes: int = 45
     grade_workers: int = 4
     grade_logs_dir_name: str = "logs"
     results_file_name: str = "results.json"

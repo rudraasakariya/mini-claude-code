@@ -66,18 +66,30 @@ def grade_task(
 
     test_spec = make_test_spec(task)
     log_path = logs_dir / f"{instance_id}{GradeMessages.LOG_SUFFIX}"
-    # the eval script reinstalls the repo with pip, so grading keeps the network
-    with task_sandbox(daytona, instance_id, settings, block_network=False) as sandbox:
-        if not apply_patch(sandbox, prediction["model_patch"], settings):
-            return {"resolved": False, "reason": GradeMessages.PATCH_APPLY_FAILED}
-        try:
-            output = run_eval(sandbox, test_spec.eval_script, settings)
-        except DaytonaTimeoutError:
-            log_path.write_text(
-                GradeMessages.TIMEOUT_NOTE.format(timeout=settings.eval_timeout_seconds)
-            )
+    timeout_note = GradeMessages.TIMEOUT_NOTE.format(
+        timeout=settings.eval_timeout_seconds
+    )
+    # a log is a finished eval's output, so a rerun grades from it, no sandbox
+    if log_path.exists():
+        if log_path.read_text() == timeout_note:
             return {"resolved": False, "reason": GradeMessages.TIMED_OUT}
-    log_path.write_text(output)
+    else:
+        # the eval script reinstalls the repo with pip, so grading keeps the network
+        with task_sandbox(
+            daytona,
+            instance_id,
+            settings,
+            block_network=False,
+            auto_stop_minutes=settings.grade_auto_stop_minutes,
+        ) as sandbox:
+            if not apply_patch(sandbox, prediction["model_patch"], settings):
+                return {"resolved": False, "reason": GradeMessages.PATCH_APPLY_FAILED}
+            try:
+                output = run_eval(sandbox, test_spec.eval_script, settings)
+            except DaytonaTimeoutError:
+                log_path.write_text(timeout_note)
+                return {"resolved": False, "reason": GradeMessages.TIMED_OUT}
+        log_path.write_text(output)
     report = get_eval_report(
         test_spec=test_spec,
         prediction=prediction,

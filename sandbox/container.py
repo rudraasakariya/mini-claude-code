@@ -39,16 +39,22 @@ def task_sandbox(
     instance_id: str,
     settings: SweBenchSettings,
     block_network: bool = True,
+    auto_stop_minutes: int | None = None,
 ) -> Iterator[Sandbox]:
     """
     One sandbox for one task, deleted when the block ends. The agent gets no
     network; grading needs it because the eval script reinstalls the repo.
+    auto_stop_minutes overrides Daytona's 15-minute idle stop, which also
+    fires while a long command is still running.
     """
     image = task_image(instance_id, settings)
     logger.info(LogMessages.SANDBOX_CREATING, extra={"image": image})
     sandbox = daytona.create(
         CreateSandboxFromImageParams(
-            image=image, network_block_all=block_network, ephemeral=True
+            image=image,
+            network_block_all=block_network,
+            ephemeral=True,
+            auto_stop_interval=auto_stop_minutes,
         ),
         timeout=settings.sandbox_create_timeout_seconds,
     )
