@@ -12,7 +12,13 @@ from openai import OpenAI
 
 from agent.loop import run_agent_loop
 from agent.state import State, UserTurn
-from config.constants import EvalMessages, LogMessages, Prompts, SecretNames
+from config.constants import (
+    EvalMessages,
+    LogMessages,
+    Prompts,
+    SecretNames,
+    TraceFormat,
+)
 from config.logging_setup import configure_logging
 from config.settings import (
     MODEL_PRICING,
@@ -30,6 +36,7 @@ from hooks.policy import load_policy
 from mcp_server.workspace import DaytonaWorkspace
 from router.azure_client import make_client
 from sandbox.container import make_daytona, task_sandbox
+from trace_store.entries import RunEnd
 from trace_store.store import open_trace
 
 logger = logging.getLogger(__name__)
@@ -49,6 +56,26 @@ def load_tasks(
 def read_split(name: str, settings: SweBenchSettings) -> list[str]:
     path = settings.splits_dir / f"{name}{settings.split_suffix}"
     return [line for line in path.read_text().splitlines() if line]
+
+
+def finished_ids(predictions_path: Path) -> set[str]:
+    """Tasks that reached a recorded end and saved a patch; a rerun skips them."""
+    if not predictions_path.exists():
+        return set()
+    saved = {
+        json.loads(line)["instance_id"]
+        for line in predictions_path.read_text().splitlines()
+    }
+    run_end = RunEnd.model_fields["type"].default
+    finished = set()
+    for instance_id in saved:
+        trace = predictions_path.parent / f"{instance_id}{TraceFormat.FILE_SUFFIX}"
+        if trace.exists() and any(
+            json.loads(line)["type"] == run_end
+            for line in trace.read_text().splitlines()
+        ):
+            finished.add(instance_id)
+    return finished
 
 
 def solve_task(
@@ -89,6 +116,9 @@ def run_task(
     """Solve one task in its own sandbox and append its prediction."""
     instance_id = task["instance_id"]
     logger.info(LogMessages.TASK_STARTED, extra={"instance_id": instance_id})
+    # a crashed earlier attempt left a partial trace; traces append, so start clean
+    trace = predictions_path.parent / f"{instance_id}{TraceFormat.FILE_SUFFIX}"
+    trace.unlink(missing_ok=True)
     try:
         with task_sandbox(daytona, instance_id, settings) as sandbox:
             workspace = DaytonaWorkspace(
@@ -165,6 +195,10 @@ def main() -> None:
     if args.split:
         instance_ids += read_split(args.split, settings)
     tasks = load_tasks(settings, instance_ids, args.limit)
+    done = finished_ids(predictions_path)
+    if done:
+        logger.info(LogMessages.TASKS_SKIPPED, extra={"skipped": len(done)})
+        tasks = [task for task in tasks if task["instance_id"] not in done]
     write_lock = Lock()
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
         for task in tasks:

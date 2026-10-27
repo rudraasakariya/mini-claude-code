@@ -100,6 +100,7 @@ class LogMessages:
     TASK_STARTED: Final[str] = "SWE-bench task started."
     TASK_FAILED: Final[str] = "SWE-bench task crashed; recording an empty patch."
     TASK_FINISHED: Final[str] = "SWE-bench task finished."
+    TASKS_SKIPPED: Final[str] = "Skipping tasks this batch already finished."
     GRADE_STARTED: Final[str] = "Grading task."
     GRADE_FAILED: Final[str] = "Grading crashed; counting the task as unresolved."
     GRADE_FINISHED: Final[str] = "Task graded."
