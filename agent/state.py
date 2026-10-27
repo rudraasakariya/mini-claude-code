@@ -19,10 +19,6 @@ class ToolName(Enum):
     READ = "read"
     EDIT = "edit"
     RUN = "run"
-    FIND_DEFINITION = "find_definition"
-    FIND_CALLERS = "find_callers"
-    FIND_TESTS_FOR = "find_tests_for"
-    PATH_BETWEEN = "path_between"
 
 
 class MessagePhase(Enum):

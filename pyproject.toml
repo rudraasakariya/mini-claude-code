@@ -1,7 +1,7 @@
 [project]
 name = "mini-claude-code"
 version = "0.1.0"
-description = "Mini coding agent with agentic search, a code dependency graph, and an MCP tool server"
+description = "A single-agent coding loop with agentic search, scored on SWE-bench Lite"
 requires-python = ">=3.13"
 dependencies = [
     "datasets>=5.1.0",
@@ -33,9 +33,7 @@ include = [
     "agent*",
     "config*",
     "eval*",
-    "graph*",
     "hooks*",
-    "injection*",
     "mcp_server*",
     "router*",
     "sandbox*",
